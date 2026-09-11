@@ -69,6 +69,13 @@
     <string name="up_to_date">Уже актуальная версия</string>
     <string name="updated">Обновлено до %1$s</string>
     <string name="settings_engine_hint">Если YouTube перестал скачиваться — обновите движок</string>
+    <string name="settings_section_about">О приложении</string>
+    <string name="developer_name">RaeBaeXXX</string>
+    <string name="developer_role">Разработчик</string>
+    <string name="settings_repo">Репозиторий проекта</string>
+    <string name="settings_repo_url">github.com/raebaexxx/YtGrab</string>
+    <string name="app_version">Версия %1$s</string>
+    <string name="avatar">Аватар разработчика</string>
 
     <string name="notif_channel">Загрузки</string>
     <string name="notif_downloading">Скачивание видео</string>
