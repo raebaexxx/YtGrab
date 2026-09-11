@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ytdl"
 include(":app")
+include(":ffmpeg")

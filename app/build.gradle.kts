@@ -18,8 +18,8 @@ android {
         applicationId = "com.raebae.ytdl"
         minSdk = 31
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
 
         ndk {
             abiFilters += "arm64-v8a"
@@ -64,7 +64,13 @@ android {
         jniLibs {
             // youtubedl-android requires native libs extracted to disk
             useLegacyPackaging = true
+            // our slim repack of the bundled python distribution wins over the AAR's
+            pickFirsts += "lib/arm64-v8a/libpython.zip.so"
         }
+    }
+
+    androidResources {
+        localeFilters += listOf("en", "ru")
     }
 }
 
@@ -86,7 +92,7 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.youtubedl.library)
-    implementation(libs.youtubedl.ffmpeg)
+    implementation(project(":ffmpeg"))
     implementation(libs.youtubedl.aria2c)
 
     testImplementation(libs.junit)
