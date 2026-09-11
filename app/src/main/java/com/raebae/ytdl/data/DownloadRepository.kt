@@ -34,6 +34,7 @@ object DownloadRepository {
         val sizeHint: Long?,
         val embedMetadata: Boolean = true,
         val embedThumbnail: Boolean = false,
+        val fastDownload: Boolean = true,
         val status: Status = Status.QUEUED,
         val progress: Float = 0f,
         val etaSec: Long? = null,

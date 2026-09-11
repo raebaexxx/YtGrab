@@ -128,7 +128,8 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
                     thumbnail = ready.playlist.thumbnail,
                     sizeHint = null,
                     embedMetadata = settingsValue.embedMetadata,
-                    embedThumbnail = settingsValue.embedThumbnail
+                    embedThumbnail = settingsValue.embedThumbnail,
+                    fastDownload = settingsValue.fastDownload
                 )
             }
         DownloadRepository.enqueue(app, tasks)

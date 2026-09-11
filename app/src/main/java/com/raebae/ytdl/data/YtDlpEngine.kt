@@ -1,20 +1,27 @@
 package com.raebae.ytdl.data
 
 import android.content.Context
+import com.yausername.aria2c.Aria2c
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 object YtDlpEngine {
 
     private val initMutex = Mutex()
     private var initialized = false
+    private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     suspend fun ensureInit(appContext: Context) {
         if (initialized) return
@@ -23,8 +30,26 @@ object YtDlpEngine {
             withContext(Dispatchers.IO) {
                 YoutubeDL.getInstance().init(appContext)
                 FFmpeg.getInstance().init(appContext)
+                runCatching { Aria2c.init(appContext) }
             }
             initialized = true
+            engineScope.launch { autoUpdateIfOutdated(appContext) }
+        }
+    }
+
+    /**
+     * yt-dlp errors out on extractors when its release is older than ~90 days,
+     * so silently update the binary if the bundled/installed one is stale.
+     */
+    private suspend fun autoUpdateIfOutdated(context: Context) {
+        runCatching {
+            val raw = YoutubeDL.getInstance().version(context) ?: return
+            val m = Regex("(\\d{4})\\.(\\d{2})\\.(\\d{2})").find(raw) ?: return
+            val (y, mo, d) = m.destructured
+            val releaseDate = LocalDate.of(y.toInt(), mo.toInt(), d.toInt())
+            if (ChronoUnit.DAYS.between(releaseDate, LocalDate.now()) > 60) {
+                updateYtDlp(context)
+            }
         }
     }
 
@@ -158,7 +183,15 @@ object YtDlpEngine {
             addOption("-o", "${task.fileNameBase}.%(ext)s")
             addOption("--no-playlist")
             addOption("--no-mtime")
-            addOption("--concurrent-fragments", "3")
+            addOption("--concurrent-fragments", "8")
+            if (task.fastDownload) {
+                // aria2c: many parallel connections bypass per-connection throttling
+                addOption("--downloader", "libaria2c.so")
+                addOption(
+                    "--external-downloader-args",
+                    "aria2c:-x16 -s16 -k1M --min-split-size=1M --max-connection-per-server=16 --file-allocation=none"
+                )
+            }
             if (task.embedMetadata) addOption("--embed-metadata")
             if (task.embedThumbnail) addOption("--embed-thumbnail")
             task.mergeExt?.let { addOption("--merge-output-format", it) }

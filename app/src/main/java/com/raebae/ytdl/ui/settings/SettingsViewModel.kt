@@ -76,6 +76,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSubFolder(value: String) = viewModelScope.launch { repo.setSubFolder(value) }
     fun setPlatformFolders(value: Boolean) = viewModelScope.launch { repo.setPlatformFolders(value) }
+    fun setFastDownload(value: Boolean) = viewModelScope.launch { repo.setFastDownload(value) }
     fun setEmbedMetadata(value: Boolean) = viewModelScope.launch { repo.setEmbedMetadata(value) }
     fun setEmbedThumbnail(value: Boolean) = viewModelScope.launch { repo.setEmbedThumbnail(value) }
     fun setThemeMode(value: ThemeMode) = viewModelScope.launch { repo.setThemeMode(value) }

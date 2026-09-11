@@ -93,6 +93,13 @@ fun SettingsScreen() {
                 onChange = viewModel::setPlatformFolders
             )
 
+            SwitchRow(
+                title = stringResource(R.string.settings_fast_download),
+                subtitle = stringResource(R.string.settings_fast_download_desc),
+                checked = settings.fastDownload,
+                onChange = viewModel::setFastDownload
+            )
+
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionHeader(stringResource(R.string.settings_section_appearance))
 

@@ -18,8 +18,8 @@ android {
         applicationId = "com.raebae.ytdl"
         minSdk = 31
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         ndk {
             abiFilters += "arm64-v8a"
@@ -87,6 +87,7 @@ dependencies {
 
     implementation(libs.youtubedl.library)
     implementation(libs.youtubedl.ffmpeg)
+    implementation(libs.youtubedl.aria2c)
 
     testImplementation(libs.junit)
 }

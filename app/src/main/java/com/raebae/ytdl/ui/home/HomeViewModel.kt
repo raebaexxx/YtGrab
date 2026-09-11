@@ -122,7 +122,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             thumbnail = ready.video.thumbnail,
             sizeHint = option.sizeBytes,
             embedMetadata = settingsValue.embedMetadata,
-            embedThumbnail = settingsValue.embedThumbnail
+            embedThumbnail = settingsValue.embedThumbnail,
+            fastDownload = settingsValue.fastDownload
         )
         DownloadRepository.enqueue(app, listOf(task))
     }

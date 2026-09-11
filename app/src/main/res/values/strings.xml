@@ -53,6 +53,8 @@
     <string name="settings_subfolder">Подпапка в загрузках</string>
     <string name="settings_platform_folders">Подпапки по платформам</string>
     <string name="settings_platform_folders_desc">YouTube и TikTok в отдельных подпапках</string>
+    <string name="settings_fast_download">Быстрая загрузка</string>
+    <string name="settings_fast_download_desc">Много параллельных соединений (aria2c) — заметно быстрее на скоростном интернете</string>
     <string name="settings_section_appearance">Внешний вид</string>
     <string name="settings_theme">Тема</string>
     <string name="theme_system">Как в системе</string>

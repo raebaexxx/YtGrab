@@ -15,6 +15,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 data class SettingsState(
     val subFolder: String = "YtGrab",
     val platformFolders: Boolean = false,
+    val fastDownload: Boolean = true,
     val embedMetadata: Boolean = true,
     val embedThumbnail: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -28,6 +29,7 @@ class SettingsRepository(private val context: Context) {
     private object Keys {
         val SUBFOLDER = stringPreferencesKey("subfolder")
         val PLATFORM_FOLDERS = booleanPreferencesKey("platform_folders")
+        val FAST_DOWNLOAD = booleanPreferencesKey("fast_download")
         val EMBED_METADATA = booleanPreferencesKey("embed_metadata")
         val EMBED_THUMBNAIL = booleanPreferencesKey("embed_thumbnail")
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -38,6 +40,7 @@ class SettingsRepository(private val context: Context) {
         SettingsState(
             subFolder = p[Keys.SUBFOLDER] ?: "YtGrab",
             platformFolders = p[Keys.PLATFORM_FOLDERS] ?: false,
+            fastDownload = p[Keys.FAST_DOWNLOAD] ?: true,
             embedMetadata = p[Keys.EMBED_METADATA] ?: true,
             embedThumbnail = p[Keys.EMBED_THUMBNAIL] ?: false,
             themeMode = p[Keys.THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
@@ -52,6 +55,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setPlatformFolders(value: Boolean) {
         context.dataStore.edit { it[Keys.PLATFORM_FOLDERS] = value }
+    }
+
+    suspend fun setFastDownload(value: Boolean) {
+        context.dataStore.edit { it[Keys.FAST_DOWNLOAD] = value }
     }
 
     suspend fun setEmbedMetadata(value: Boolean) {
