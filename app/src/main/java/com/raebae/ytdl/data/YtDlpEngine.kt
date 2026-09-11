@@ -40,10 +40,15 @@ object YtDlpEngine {
     /**
      * yt-dlp errors out on extractors when its release is older than ~90 days,
      * so silently update the binary if the bundled/installed one is stale.
+     * On a fresh install there is no stored version at all -> update anyway.
      */
     private suspend fun autoUpdateIfOutdated(context: Context) {
         runCatching {
-            val raw = YoutubeDL.getInstance().version(context) ?: return
+            val raw = YoutubeDL.getInstance().version(context)
+            if (raw == null) {
+                updateYtDlp(context)
+                return
+            }
             val m = Regex("(\\d{4})\\.(\\d{2})\\.(\\d{2})").find(raw) ?: return
             val (y, mo, d) = m.destructured
             val releaseDate = LocalDate.of(y.toInt(), mo.toInt(), d.toInt())
@@ -51,6 +56,14 @@ object YtDlpEngine {
                 updateYtDlp(context)
             }
         }
+    }
+
+    /** yt-dlp refuses to extract when its release is >90 days old. */
+    fun isOutdatedError(e: Throwable): Boolean {
+        val msg = (e.message ?: "").lowercase()
+        return msg.contains("older than 90 days") ||
+            (msg.contains("yt-dlp version") && msg.contains("outdated")) ||
+            (msg.contains("yt-dlp") && msg.contains("please update"))
     }
 
     suspend fun fetchMedia(url: String): MediaResult = withContext(Dispatchers.IO) {

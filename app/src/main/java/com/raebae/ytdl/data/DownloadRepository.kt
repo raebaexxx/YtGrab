@@ -90,7 +90,23 @@ object DownloadRepository {
             pollProgress(task.id, task.outputDir, task.fileNameBase, task.sizeHint)
         }
         try {
-            YtDlpEngine.download(task)
+            var attempt = 0
+            while (true) {
+                try {
+                    YtDlpEngine.download(task)
+                    break
+                } catch (e: YoutubeDL.CanceledException) {
+                    throw e
+                } catch (e: Exception) {
+                    // stale engine: update yt-dlp and retry once
+                    if (attempt == 0 && YtDlpEngine.isOutdatedError(e)) {
+                        attempt++
+                        runCatching { appContext?.let { YtDlpEngine.updateYtDlp(it) } }
+                        continue
+                    }
+                    throw e
+                }
+            }
             val ext = task.mergeExt ?: "mp4"
             val path = File(task.outputDir, "${task.fileNameBase}.$ext").absolutePath
             _tasks.update { list ->

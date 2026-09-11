@@ -86,7 +86,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = UiState.Loading
         viewModelScope.launch {
             try {
-                when (val result = YtDlpEngine.fetchMedia(url)) {
+                when (val result = fetchMediaWithRetry(url)) {
                     is MediaResult.Video ->
                         _state.value = UiState.Ready(result.video, result.video.formats.firstOrNull())
                     is MediaResult.Playlist ->
@@ -94,6 +94,20 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } catch (e: Exception) {
                 _state.value = UiState.Error(mapError(e, ctx))
+            }
+        }
+    }
+
+    /** stale engine (older than 90 days): update yt-dlp and retry once */
+    private suspend fun fetchMediaWithRetry(url: String): MediaResult {
+        return try {
+            YtDlpEngine.fetchMedia(url)
+        } catch (e: Exception) {
+            if (YtDlpEngine.isOutdatedError(e)) {
+                YtDlpEngine.updateYtDlp(getApplication())
+                YtDlpEngine.fetchMedia(url)
+            } else {
+                throw e
             }
         }
     }
