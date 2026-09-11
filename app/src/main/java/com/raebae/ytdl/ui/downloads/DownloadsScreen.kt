@@ -145,15 +145,26 @@ private fun ActiveTaskCard(task: DownloadRepository.DownloadTask, onCancel: () -
             Spacer(Modifier.size(8.dp))
             when (task.status) {
                 Status.RUNNING -> {
-                    LinearProgressIndicator(
-                        progress = { task.progress / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (task.progress > 0) {
+                        LinearProgressIndicator(
+                            progress = { task.progress / 100f },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                     val parts = mutableListOf<String>()
-                    parts += "${task.progress.toInt()}%"
+                    if (task.progress > 0) {
+                        parts += "${task.progress.toInt()}%"
+                    } else {
+                        task.bytesDone?.takeIf { it > 0 }
+                            ?.let { parts += FormatUtils.formatBytes(it) }
+                    }
                     task.speed?.let { parts += it }
-                    FormatUtils.formatEta(task.etaSec).takeIf { it.isNotEmpty() }?.let {
-                        parts += it
+                    if (task.progress > 0) {
+                        FormatUtils.formatEta(task.etaSec).takeIf { it.isNotEmpty() }?.let {
+                            parts += it
+                        }
                     }
                     Text(
                         parts.joinToString(" · "),

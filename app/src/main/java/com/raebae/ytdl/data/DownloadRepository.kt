@@ -3,16 +3,19 @@ package com.raebae.ytdl.data
 import android.content.Context
 import android.content.Intent
 import com.raebae.ytdl.service.DownloadService
+import com.raebae.ytdl.util.FormatUtils
 import com.yausername.youtubedl_android.YoutubeDL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
@@ -37,6 +40,7 @@ object DownloadRepository {
         val fastDownload: Boolean = true,
         val status: Status = Status.QUEUED,
         val progress: Float = 0f,
+        val bytesDone: Long? = null,
         val etaSec: Long? = null,
         val speed: String? = null,
         val error: String? = null,
@@ -80,15 +84,13 @@ object DownloadRepository {
 
     private suspend fun runTask(task: DownloadTask) {
         _tasks.update { list -> list.map { if (it.id == task.id) it.copy(status = Status.RUNNING) else it } }
+        // the library's stdout parser crashes on aria2c console lines, so track
+        // progress by polling the growing .part files on disk instead
+        val poller = scope.launch {
+            pollProgress(task.id, task.outputDir, task.fileNameBase, task.sizeHint)
+        }
         try {
-            YtDlpEngine.download(task) { percent, eta, speed ->
-                _tasks.update { list ->
-                    list.map {
-                        if (it.id == task.id) it.copy(progress = percent, etaSec = eta, speed = speed)
-                        else it
-                    }
-                }
-            }
+            YtDlpEngine.download(task)
             val ext = task.mergeExt ?: "mp4"
             val path = File(task.outputDir, "${task.fileNameBase}.$ext").absolutePath
             _tasks.update { list ->
@@ -96,6 +98,7 @@ object DownloadRepository {
                     if (it.id == task.id) it.copy(
                         status = Status.COMPLETED,
                         progress = 100f,
+                        bytesDone = task.sizeHint,
                         filePath = path
                     ) else it
                 }
@@ -114,7 +117,45 @@ object DownloadRepository {
                 }
             }
         } finally {
+            poller.cancel()
             scope.launch { wake.send(Unit) }
+        }
+    }
+
+    private suspend fun pollProgress(id: String, dir: File, fileNameBase: String, sizeHint: Long?) {
+        var lastBytes = 0L
+        var lastTime = System.currentTimeMillis()
+        var lastBps = 0.0
+        var lastSpeed: String? = null
+        while (true) {
+            delay(700)
+            val bytes = withContext(Dispatchers.IO) {
+                dir.listFiles()
+                    ?.filter { it.name.startsWith(fileNameBase) && it.name.endsWith(".part") }
+                    ?.sumOf { it.length() } ?: 0L
+            }
+            val now = System.currentTimeMillis()
+            val dt = now - lastTime
+            if (bytes > lastBytes && dt > 0) {
+                lastBps = (bytes - lastBytes) * 1000.0 / dt
+                lastSpeed = FormatUtils.formatSpeed(lastBps)
+            }
+            lastBytes = bytes
+            lastTime = now
+            val percent = sizeHint?.takeIf { it > 0 }
+                ?.let { (bytes * 100.0 / it).toFloat().coerceIn(0f, 99f) } ?: 0f
+            val eta = sizeHint?.takeIf { it > 0 && lastBps > 0 }
+                ?.let { ((it - bytes) / lastBps).toLong().takeIf { s -> s > 0 } }
+            _tasks.update { list ->
+                list.map {
+                    if (it.id == id) it.copy(
+                        progress = percent,
+                        bytesDone = bytes,
+                        speed = lastSpeed,
+                        etaSec = eta
+                    ) else it
+                }
+            }
         }
     }
 

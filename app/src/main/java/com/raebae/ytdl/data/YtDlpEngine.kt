@@ -173,10 +173,7 @@ object YtDlpEngine {
         return result
     }
 
-    suspend fun download(
-        task: DownloadRepository.DownloadTask,
-        onProgress: (percent: Float, etaSec: Long?, speed: String?) -> Unit
-    ): Unit = withContext(Dispatchers.IO) {
+    suspend fun download(task: DownloadRepository.DownloadTask): Unit = withContext(Dispatchers.IO) {
         val request = YoutubeDLRequest(task.url).apply {
             addOption("-f", task.formatSpec)
             addOption("-P", task.outputDir.absolutePath)
@@ -185,30 +182,15 @@ object YtDlpEngine {
             addOption("--no-mtime")
             addOption("--concurrent-fragments", "8")
             if (task.fastDownload) {
-                // aria2c: many parallel connections bypass per-connection throttling
+                // aria2c external downloader; yt-dlp already passes -x16 -j16 -s16 by default
                 addOption("--downloader", "libaria2c.so")
-                addOption(
-                    "--external-downloader-args",
-                    "aria2c:-x16 -s16 -k1M --min-split-size=1M --max-connection-per-server=16 --file-allocation=none"
-                )
             }
             if (task.embedMetadata) addOption("--embed-metadata")
             if (task.embedThumbnail) addOption("--embed-thumbnail")
             task.mergeExt?.let { addOption("--merge-output-format", it) }
         }
-        YoutubeDL.getInstance().execute(request, task.id) { progress, eta, line ->
-            onProgress(progress, eta.takeIf { it > 0 }, parseSpeed(line))
-        }
+        YoutubeDL.getInstance().execute(request, task.id, null)
         Unit
-    }
-
-    private val speedRegex = Regex("([0-9.]+)\\s*([KMGT]?)iB/s")
-
-    fun parseSpeed(line: String): String? {
-        val m = speedRegex.find(line) ?: return null
-        val value = m.groupValues[1].toDoubleOrNull() ?: return null
-        val unit = m.groupValues[2].ifEmpty { "" }
-        return "%.1f %siB/s".format(value, unit)
     }
 
     fun cancel(id: String): Boolean = YoutubeDL.getInstance().destroyProcessById(id)

@@ -41,6 +41,14 @@ object UrlUtils {
 }
 
 object FormatUtils {
+    fun formatSpeed(bps: Double): String {
+        val kb = bps / 1024.0
+        if (kb < 1024) return "%.0f KB/s".format(kb)
+        val mb = kb / 1024.0
+        if (mb < 1024) return "%.1f MB/s".format(mb)
+        return "%.2f GB/s".format(mb / 1024.0)
+    }
+
     fun formatBytes(bytes: Long?): String {
         if (bytes == null || bytes <= 0) return "—"
         val kb = bytes / 1024.0

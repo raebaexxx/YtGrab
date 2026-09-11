@@ -85,9 +85,13 @@ class DownloadService : Service() {
         when (active.status) {
             Status.RUNNING -> {
                 val parts = mutableListOf<String>()
-                parts += "${active.progress.toInt()}%"
+                if (active.progress > 0) {
+                    parts += "${active.progress.toInt()}%"
+                    FormatUtils.formatEta(active.etaSec).takeIf { it.isNotEmpty() }?.let { parts += it }
+                } else {
+                    active.bytesDone?.takeIf { it > 0 }?.let { parts += FormatUtils.formatBytes(it) }
+                }
                 active.speed?.let { parts += it }
-                FormatUtils.formatEta(active.etaSec).takeIf { it.isNotEmpty() }?.let { parts += it }
                 builder.setContentText(parts.joinToString(" · "))
                 builder.setProgress(100, active.progress.toInt(), active.progress <= 0f)
             }
