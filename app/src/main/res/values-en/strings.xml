@@ -74,4 +74,5 @@
     <string name="notif_downloading">Downloading video</string>
     <string name="notif_queue_n">In queue: %1$d</string>
     <string name="file_open_failed">Could not open file</string>
+    <string name="err_permission_denied">Could not overwrite the file: Android forbids modifying downloads made before the app was reinstalled. Delete the old file of this video from the downloads folder and try again</string>
 </resources>

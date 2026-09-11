@@ -74,4 +74,5 @@
     <string name="notif_downloading">Скачивание видео</string>
     <string name="notif_queue_n">В очереди: %1$d</string>
     <string name="file_open_failed">Не удалось открыть файл</string>
+    <string name="err_permission_denied">Не удалось перезаписать файл: Android запрещает менять загрузки, сделанные до переустановки приложения. Удалите старый файл этого видео из папки загрузок и попробуйте снова</string>
 </resources>

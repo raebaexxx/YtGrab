@@ -2,6 +2,7 @@ package com.raebae.ytdl.data
 
 import android.content.Context
 import android.content.Intent
+import com.raebae.ytdl.R
 import com.raebae.ytdl.service.DownloadService
 import com.raebae.ytdl.util.FormatUtils
 import com.yausername.youtubedl_android.YoutubeDL
@@ -84,6 +85,7 @@ object DownloadRepository {
 
     private suspend fun runTask(task: DownloadTask) {
         _tasks.update { list -> list.map { if (it.id == task.id) it.copy(status = Status.RUNNING) else it } }
+        withContext(Dispatchers.IO) { cleanStaleArtifacts(task) }
         // the library's stdout parser crashes on aria2c console lines, so track
         // progress by polling the growing .part files on disk instead
         val poller = scope.launch {
@@ -124,11 +126,17 @@ object DownloadRepository {
                 list.map { if (it.id == task.id) it.copy(status = Status.CANCELED) else it }
             }
         } catch (e: Exception) {
+            val msg = if ((e.message ?: "").contains("Permission denied")) {
+                appContext?.getString(R.string.err_permission_denied)
+                    ?: YtDlpEngine.friendlyError(e, "download failed")
+            } else {
+                YtDlpEngine.friendlyError(e, "download failed")
+            }
             _tasks.update { list ->
                 list.map {
                     if (it.id == task.id) it.copy(
                         status = Status.FAILED,
-                        error = YtDlpEngine.friendlyError(e, "download failed")
+                        error = msg
                     ) else it
                 }
             }
@@ -136,6 +144,25 @@ object DownloadRepository {
             poller.cancel()
             scope.launch { wake.send(Unit) }
         }
+    }
+
+    /**
+     * Files left over from previous attempts/downloads (.part, .meta, .temp.*,
+     * the final file itself) can belong to a previous app install — Android's
+     * scoped storage (FUSE) then denies us write access when yt-dlp or ffmpeg
+     * tries to replace them. Delete everything matching this task's base name
+     * before downloading so ffmpeg never has to overwrite a foreign file.
+     */
+    private fun cleanStaleArtifacts(task: DownloadTask) {
+        val finalName = "${task.fileNameBase}.${task.mergeExt ?: "mp4"}"
+        val files = task.outputDir.listFiles() ?: return
+        for (f in files) {
+            if (!f.name.startsWith(task.fileNameBase)) continue
+            if (f.name == finalName) continue
+            runCatching { f.delete() }
+        }
+        val final = File(task.outputDir, finalName)
+        if (final.exists()) runCatching { final.delete() }
     }
 
     private suspend fun pollProgress(id: String, dir: File, fileNameBase: String, sizeHint: Long?) {
