@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YtGrab</string>
+
+    <string name="nav_home">Главная</string>
+    <string name="nav_downloads">Загрузки</string>
+    <string name="nav_settings">Настройки</string>
+
+    <string name="url_hint">Ссылка на видео или плейлист</string>
+    <string name="paste">Вставить из буфера</string>
+    <string name="fetch">Показать форматы</string>
+    <string name="back">Назад</string>
+    <string name="loading">Получаем информацию…</string>
+
+    <string name="err_empty_url">Вставьте ссылку</string>
+    <string name="err_no_formats">Скачиваемые форматы не найдены</string>
+    <string name="err_playlist_empty">Плейлист пуст</string>
+    <string name="err_not_playlist">Это видео, а не плейлист</string>
+    <string name="err_generic">Не удалось получить информацию</string>
+
+    <string name="formats_title">Доступные форматы</string>
+    <string name="audio_of">звук: %1$s</string>
+    <string name="progressive_tag">видео+звук одним файлом</string>
+    <string name="size_unknown">размер неизвестен</string>
+    <string name="btn_download">Скачать</string>
+    <string name="added_to_queue">Добавлено в загрузки</string>
+    <string name="playlist_chip">Это плейлист — выбрать видео</string>
+
+    <string name="playlist_title">Плейлист</string>
+    <string name="playlist_videos">%1$d видео</string>
+    <string name="playlist_select_all">Выбрать все</string>
+    <string name="playlist_deselect_all">Снять все</string>
+    <string name="playlist_quality">Качество</string>
+    <string name="playlist_download_n">Скачать (%1$d)</string>
+    <string name="quality_any">Любое</string>
+    <string name="codec_any">Авто</string>
+    <string name="quality_resolution">Максимальное разрешение</string>
+    <string name="quality_codec">Кодек</string>
+
+    <string name="downloads_active">Активные</string>
+    <string name="downloads_finished">Завершённые</string>
+    <string name="status_queued">В очереди</string>
+    <string name="status_done">Готово</string>
+    <string name="status_failed">Ошибка</string>
+    <string name="status_canceled">Отменено</string>
+    <string name="retry">Повторить</string>
+    <string name="open">Открыть</string>
+    <string name="cancel">Отмена</string>
+    <string name="clear_finished">Очистить завершённые</string>
+    <string name="empty_downloads">Нет загрузок</string>
+
+    <string name="settings_section_save">Сохранение</string>
+    <string name="settings_subfolder">Подпапка в загрузках</string>
+    <string name="settings_platform_folders">Подпапки по платформам</string>
+    <string name="settings_platform_folders_desc">YouTube и TikTok в отдельных подпапках</string>
+    <string name="settings_section_appearance">Внешний вид</string>
+    <string name="settings_theme">Тема</string>
+    <string name="theme_system">Как в системе</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="settings_dynamic">Динамические цвета</string>
+    <string name="settings_dynamic_desc">Цвета из обоев (Material You)</string>
+    <string name="settings_section_engine">Движок</string>
+    <string name="settings_engine_version">Версия yt-dlp: %1$s</string>
+    <string name="settings_update">Обновить yt-dlp</string>
+    <string name="updating">Обновление…</string>
+    <string name="up_to_date">Уже актуальная версия</string>
+    <string name="updated">Обновлено до %1$s</string>
+    <string name="settings_engine_hint">Если YouTube перестал скачиваться — обновите движок</string>
+
+    <string name="notif_channel">Загрузки</string>
+    <string name="notif_downloading">Скачивание видео</string>
+    <string name="notif_queue_n">В очереди: %1$d</string>
+    <string name="file_open_failed">Не удалось открыть файл</string>
+</resources>
