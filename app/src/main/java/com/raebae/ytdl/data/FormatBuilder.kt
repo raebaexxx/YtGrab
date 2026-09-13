@@ -136,6 +136,7 @@ object FormatBuilder {
 
     fun mergeExtFor(vcodecPrefix: String?, videoExt: String?): String = when {
         vcodecPrefix?.startsWith("vp9") == true -> "webm"
+        vcodecPrefix?.startsWith("vp09") == true -> "webm"
         videoExt?.lowercase() == "webm" -> "webm"
         else -> "mp4"
     }

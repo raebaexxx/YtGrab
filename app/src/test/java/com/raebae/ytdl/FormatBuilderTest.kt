@@ -114,7 +114,9 @@ class FormatBuilderTest {
 
     @Test
     fun `merge ext follows codec`() {
-        assertEquals("webm", FormatBuilder.mergeExtFor("vp09", "webm"))
+        assertEquals("webm", FormatBuilder.mergeExtFor("vp9", "webm"))
+        assertEquals("webm", FormatBuilder.mergeExtFor("vp09", null))
+        assertEquals("webm", FormatBuilder.mergeExtFor("vp09", "mp4"))
         assertEquals("mp4", FormatBuilder.mergeExtFor("avc1", "mp4"))
         assertEquals("mp4", FormatBuilder.mergeExtFor("av01", "mp4"))
         assertEquals("mp4", FormatBuilder.mergeExtFor(null, "mp4"))

@@ -67,11 +67,17 @@ object DownloadRepository {
         if (newTasks.isEmpty()) return
         attach(context)
         _tasks.update { it + newTasks }
+        startService(context)
+        scope.launch { wake.send(Unit) }
+    }
+
+    /** The service stops itself when the queue empties, so any path that
+     *  re-queues a task must bring it (and its foreground notification) back. */
+    private fun startService(context: Context) {
         runCatching {
             val intent = Intent(context, DownloadService::class.java)
             context.startForegroundService(intent)
         }
-        scope.launch { wake.send(Unit) }
     }
 
     private suspend fun worker() {
@@ -86,6 +92,7 @@ object DownloadRepository {
     private suspend fun runTask(task: DownloadTask) {
         _tasks.update { list -> list.map { if (it.id == task.id) it.copy(status = Status.RUNNING) else it } }
         withContext(Dispatchers.IO) { cleanStaleArtifacts(task) }
+        YtDlpEngine.registerDownloadMarker(task.id, task.outputDir.absolutePath)
         // the library's stdout parser crashes on aria2c console lines, so track
         // progress by polling the growing .part files on disk instead
         val poller = scope.launch {
@@ -141,6 +148,7 @@ object DownloadRepository {
                 }
             }
         } finally {
+            YtDlpEngine.releaseDownloadMarker(task.id)
             poller.cancel()
             scope.launch { wake.send(Unit) }
         }
@@ -228,6 +236,7 @@ object DownloadRepository {
                 } else it
             }
         }
+        appContext?.let { startService(it) }
         scope.launch { wake.send(Unit) }
     }
 

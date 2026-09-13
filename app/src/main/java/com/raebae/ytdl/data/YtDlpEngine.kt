@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -206,7 +207,38 @@ object YtDlpEngine {
         Unit
     }
 
-    fun cancel(id: String): Boolean = YoutubeDL.getInstance().destroyProcessById(id)
+    fun cancel(id: String): Boolean {
+        val killed = YoutubeDL.getInstance().destroyProcessById(id)
+        // The library kills child processes via "pstree | grep -P | xargs kill",
+        // which does not exist on Android (toybox) — so an orphaned aria2c
+        // spawned by yt-dlp keeps downloading after cancellation. Kill every
+        // aria2c process whose command line mentions this download's marker.
+        val marker = downloadMarkers.remove(id)
+        if (marker != null) killAria2cByMarker(marker)
+        return killed
+    }
+
+    private val downloadMarkers = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun registerDownloadMarker(id: String, outputDir: String) {
+        downloadMarkers[id] = outputDir
+    }
+
+    fun releaseDownloadMarker(id: String) {
+        downloadMarkers.remove(id)
+    }
+
+    private fun killAria2cByMarker(marker: String) {
+        runCatching {
+            val procDir = File("/proc")
+            procDir.listFiles { f -> f.name.all { it.isDigit() } }?.forEach { pidDir ->
+                val cmdline = File(pidDir, "cmdline").readText().replace('\u0000', ' ')
+                if (cmdline.contains("aria2c") && cmdline.contains(marker)) {
+                    Runtime.getRuntime().exec(arrayOf("kill", "-9", pidDir.name))
+                }
+            }
+        }
+    }
 
     fun versionName(context: Context): String? = YoutubeDL.getInstance().versionName(context)
 
