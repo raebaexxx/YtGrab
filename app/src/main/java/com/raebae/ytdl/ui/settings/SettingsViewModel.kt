@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -42,9 +41,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refreshVersion() {
         viewModelScope.launch {
-            _engineVersion.value = withContext(Dispatchers.IO) {
-                runCatching { YtDlpEngine.versionName(getApplication()) }.getOrNull()
-            }
+            _engineVersion.value = runCatching {
+                YtDlpEngine.versionName(getApplication())
+            }.getOrNull()
         }
     }
 

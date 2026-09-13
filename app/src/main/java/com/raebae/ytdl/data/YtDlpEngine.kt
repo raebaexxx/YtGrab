@@ -67,15 +67,18 @@ object YtDlpEngine {
             (msg.contains("yt-dlp") && msg.contains("please update"))
     }
 
-    suspend fun fetchMedia(url: String): MediaResult = withContext(Dispatchers.IO) {
-        val request = YoutubeDLRequest(url).apply {
-            addOption("--flat-playlist")
-            addOption("--dump-single-json")
-            addOption("--no-warnings")
-            addOption("--socket-timeout", "30")
+    suspend fun fetchMedia(appContext: Context, url: String): MediaResult {
+        ensureInit(appContext)
+        return withContext(Dispatchers.IO) {
+            val request = YoutubeDLRequest(url).apply {
+                addOption("--flat-playlist")
+                addOption("--dump-single-json")
+                addOption("--no-warnings")
+                addOption("--socket-timeout", "30")
+            }
+            val response = YoutubeDL.getInstance().execute(request, null, null)
+            parseMediaJson(url, response.out)
         }
-        val response = YoutubeDL.getInstance().execute(request, null, null)
-        parseMediaJson(url, response.out)
     }
 
     internal fun parseMediaJson(originalUrl: String, rawOut: String): MediaResult {
@@ -187,24 +190,27 @@ object YtDlpEngine {
         return result
     }
 
-    suspend fun download(task: DownloadRepository.DownloadTask): Unit = withContext(Dispatchers.IO) {
-        val request = YoutubeDLRequest(task.url).apply {
-            addOption("-f", task.formatSpec)
-            addOption("-P", task.outputDir.absolutePath)
-            addOption("-o", "${task.fileNameBase}.%(ext)s")
-            addOption("--no-playlist")
-            addOption("--no-mtime")
-            addOption("--concurrent-fragments", "8")
-            if (task.fastDownload) {
-                // aria2c external downloader; yt-dlp already passes -x16 -j16 -s16 by default
-                addOption("--downloader", "libaria2c.so")
+    suspend fun download(appContext: Context, task: DownloadRepository.DownloadTask): Unit {
+        ensureInit(appContext)
+        withContext(Dispatchers.IO) {
+            val request = YoutubeDLRequest(task.url).apply {
+                addOption("-f", task.formatSpec)
+                addOption("-P", task.outputDir.absolutePath)
+                addOption("-o", "${task.fileNameBase}.%(ext)s")
+                addOption("--no-playlist")
+                addOption("--no-mtime")
+                addOption("--concurrent-fragments", "8")
+                if (task.fastDownload) {
+                    // aria2c external downloader; yt-dlp already passes -x16 -j16 -s16 by default
+                    addOption("--downloader", "libaria2c.so")
+                }
+                if (task.embedMetadata) addOption("--embed-metadata")
+                if (task.embedThumbnail) addOption("--embed-thumbnail")
+                task.mergeExt?.let { addOption("--merge-output-format", it) }
             }
-            if (task.embedMetadata) addOption("--embed-metadata")
-            if (task.embedThumbnail) addOption("--embed-thumbnail")
-            task.mergeExt?.let { addOption("--merge-output-format", it) }
+            YoutubeDL.getInstance().execute(request, task.id, null)
+            Unit
         }
-        YoutubeDL.getInstance().execute(request, task.id, null)
-        Unit
     }
 
     fun cancel(id: String): Boolean {
@@ -240,10 +246,16 @@ object YtDlpEngine {
         }
     }
 
-    fun versionName(context: Context): String? = YoutubeDL.getInstance().versionName(context)
+    suspend fun versionName(context: Context): String? {
+        ensureInit(context)
+        return withContext(Dispatchers.IO) { YoutubeDL.getInstance().versionName(context) }
+    }
 
-    suspend fun updateYtDlp(context: Context): YoutubeDL.UpdateStatus? = withContext(Dispatchers.IO) {
-        YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)
+    suspend fun updateYtDlp(context: Context): YoutubeDL.UpdateStatus? {
+        ensureInit(context)
+        return withContext(Dispatchers.IO) {
+            YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)
+        }
     }
 
     fun friendlyError(e: Throwable, generic: String): String {

@@ -27,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -34,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +52,8 @@ import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
 import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
+import com.raebae.ytdl.util.rememberNotificationPermission
+import kotlinx.coroutines.launch
 
 private val heightOptions = listOf(2160, 1440, 1080, 720, 480, 360)
 
@@ -60,6 +65,14 @@ fun PlaylistScreen(
     val app = LocalContext.current.applicationContext as Application
     val viewModel: PlaylistViewModel = viewModel { PlaylistViewModel(app) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val addedMessage = stringResource(R.string.added_to_queue)
+    val ensureNotificationPermission = rememberNotificationPermission()
+    val onDownloaded: (Int) -> Unit = { count ->
+        ensureNotificationPermission()
+        scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+    }
 
     Scaffold(
         topBar = {
@@ -71,7 +84,8 @@ fun PlaylistScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         when (val s = state) {
             is UiState.Loading -> Column(
@@ -96,6 +110,7 @@ fun PlaylistScreen(
             is UiState.Ready -> PlaylistContent(
                 state = s,
                 viewModel = viewModel,
+                onDownloaded = onDownloaded,
                 modifier = Modifier.padding(padding)
             )
         }
@@ -107,6 +122,7 @@ fun PlaylistScreen(
 private fun PlaylistContent(
     state: UiState.Ready,
     viewModel: PlaylistViewModel,
+    onDownloaded: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showQualityDialog by remember { mutableStateOf(false) }
@@ -205,7 +221,10 @@ private fun PlaylistContent(
         }
 
         Button(
-            onClick = { viewModel.download() },
+            onClick = {
+                viewModel.download()
+                onDownloaded(state.selectedIds.size)
+            },
             enabled = state.selectedIds.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()

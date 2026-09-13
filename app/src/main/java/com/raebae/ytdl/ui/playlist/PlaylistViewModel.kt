@@ -78,12 +78,13 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
 
     /** stale engine (older than 90 days): update yt-dlp and retry once */
     private suspend fun fetchMediaWithRetry(url: String): MediaResult {
+        val app = getApplication<Application>()
         return try {
-            YtDlpEngine.fetchMedia(url)
+            YtDlpEngine.fetchMedia(app, url)
         } catch (e: Exception) {
             if (YtDlpEngine.isOutdatedError(e)) {
-                YtDlpEngine.updateYtDlp(getApplication())
-                YtDlpEngine.fetchMedia(url)
+                YtDlpEngine.updateYtDlp(app)
+                YtDlpEngine.fetchMedia(app, url)
             } else {
                 throw e
             }

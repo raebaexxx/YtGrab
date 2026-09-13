@@ -50,7 +50,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun setSubFolder(value: String) {
-        context.dataStore.edit { it[Keys.SUBFOLDER] = value.trim().trimStart('/') }
+        context.dataStore.edit { it[Keys.SUBFOLDER] = sanitizeSubFolder(value) }
     }
 
     suspend fun setPlatformFolders(value: Boolean) {
@@ -78,6 +78,21 @@ class SettingsRepository(private val context: Context) {
     }
 
     companion object {
+
+        /**
+         * Keeps only safe path characters and blocks path traversal: the
+         * resolved folder must stay inside public Downloads.
+         */
+        fun sanitizeSubFolder(value: String): String {
+            var cleaned = value.trim().replace('\\', '/')
+                .split('/')
+                .map { segment -> segment.trim().replace(Regex("[^\\w\\s.\\-()\\[\\]]"), "").replace(Regex("\\.+"), ".") }
+                .filter { it.isNotBlank() && it != "." }
+                .joinToString("/")
+            if (cleaned.isBlank()) cleaned = "YtGrab"
+            return cleaned.take(64).trimEnd('/').ifBlank { "YtGrab" }
+        }
+
         fun platformFolderName(url: String): String? = when {
             url.contains("youtu", ignoreCase = true) -> "YouTube"
             url.contains("tiktok", ignoreCase = true) -> "TikTok"
@@ -85,7 +100,7 @@ class SettingsRepository(private val context: Context) {
         }
 
         fun resolveOutputDir(context: Context, settings: SettingsState, url: String): File {
-            var sub = settings.subFolder.ifBlank { "YtGrab" }
+            var sub = sanitizeSubFolder(settings.subFolder)
             if (settings.platformFolders) {
                 platformFolderName(url)?.let { sub = "$sub/$it" }
             }

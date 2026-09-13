@@ -2,6 +2,7 @@ package com.raebae.ytdl
 
 import com.raebae.ytdl.data.FormatBuilder
 import com.raebae.ytdl.data.FormatBuilder.RawFormat
+import com.raebae.ytdl.data.SettingsRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -149,5 +150,20 @@ class FormatBuilderTest {
         assertNull(FormatBuilder.codecLabel("none"))
         assertEquals("AAC", FormatBuilder.audioLabel("mp4a.40.2"))
         assertEquals("Opus", FormatBuilder.audioLabel("opus"))
+    }
+
+    @Test
+    fun `subfolder sanitized against path traversal and junk`() {
+        // traversal segments are dropped entirely; the rest stays inside Downloads
+        assertEquals("data/misc", SettingsRepository.sanitizeSubFolder("../../data/misc"))
+        assertEquals("YtGrab", SettingsRepository.sanitizeSubFolder("  "))
+        assertEquals("YtGrab", SettingsRepository.sanitizeSubFolder("///"))
+        assertEquals("My Videos", SettingsRepository.sanitizeSubFolder(" My Videos "))
+        assertEquals("a/b", SettingsRepository.sanitizeSubFolder("a//b"))
+        assertEquals("a.b", SettingsRepository.sanitizeSubFolder("a...b"))
+        assertEquals("MyVideos", SettingsRepository.sanitizeSubFolder("My:Videos?"))
+        assertEquals("a/b", SettingsRepository.sanitizeSubFolder("..\\a\\b"))
+        assertEquals("a/b", SettingsRepository.sanitizeSubFolder("a/./b"))
+        assertEquals("YtGrab", SettingsRepository.sanitizeSubFolder("../.."))
     }
 }

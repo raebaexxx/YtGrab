@@ -1,11 +1,6 @@
 package com.raebae.ytdl.ui.home
 
-import android.Manifest
 import android.app.Application
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,7 +51,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -64,6 +58,7 @@ import com.raebae.ytdl.R
 import com.raebae.ytdl.data.VideoFormatOption
 import com.raebae.ytdl.ui.home.HomeViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
+import com.raebae.ytdl.util.rememberNotificationPermission
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,21 +74,7 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_queue)
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { }
-
-    fun ensureNotificationPermission(onProceed: () -> Unit) {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        onProceed()
-    }
+    val ensureNotificationPermission = rememberNotificationPermission()
 
     LaunchedEffect(Unit) {
         viewModel.openPlaylist.collect { onOpenPlaylist(it) }
@@ -213,10 +194,9 @@ fun HomeScreen(
                     item {
                         Button(
                             onClick = {
-                                ensureNotificationPermission {
-                                    viewModel.download()
-                                    scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                                }
+                                ensureNotificationPermission()
+                                viewModel.download()
+                                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

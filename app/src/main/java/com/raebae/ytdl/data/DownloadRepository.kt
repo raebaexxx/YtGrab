@@ -102,7 +102,8 @@ object DownloadRepository {
             var attempt = 0
             while (true) {
                 try {
-                    YtDlpEngine.download(task)
+                    appContext?.let { YtDlpEngine.download(it, task) }
+                        ?: throw IllegalStateException("repository not attached")
                     break
                 } catch (e: YoutubeDL.CanceledException) {
                     throw e
