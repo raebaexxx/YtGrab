@@ -40,12 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import androidx.compose.foundation.Image
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.ThemeMode
 
@@ -183,8 +184,8 @@ fun SettingsScreen() {
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = "https://github.com/raebaexxx.png",
+                Image(
+                    painter = painterResource(R.drawable.developer_avatar),
                     contentDescription = stringResource(R.string.avatar),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

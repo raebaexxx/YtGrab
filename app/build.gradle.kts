@@ -18,8 +18,8 @@ android {
         applicationId = "com.raebae.ytdl"
         minSdk = 31
         targetSdk = 37
-        versionCode = 7
-        versionName = "1.3.0-beta.4"
+        versionCode = 8
+        versionName = "1.3.0-beta.5"
 
         ndk {
             abiFilters += "arm64-v8a"
