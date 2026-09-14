@@ -2,12 +2,11 @@ package com.raebae.ytdl.ui.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,22 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,9 +40,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.ThemeMode
+import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassButton
+import com.raebae.ytdl.ui.glass.GlassCard
+import com.raebae.ytdl.ui.glass.GlassChip
+import com.raebae.ytdl.ui.glass.GlassSnackbarHost
+import com.raebae.ytdl.ui.glass.GlassSpinner
+import com.raebae.ytdl.ui.glass.GlassTextField
+import com.raebae.ytdl.ui.glass.GlassTopBar
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     val app = LocalContext.current.applicationContext as android.app.Application
@@ -67,32 +64,21 @@ fun SettingsScreen() {
         viewModel.message.collect { snackbarHostState.showSnackbar(it) }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_settings)) }) },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = padding.calculateTopPadding(),
-                    start = padding.calculateStartPadding(layoutDirection),
-                    end = padding.calculateEndPadding(layoutDirection)
-                )
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = GlassBarBottomPadding)
         ) {
             SectionHeader(stringResource(R.string.settings_section_save))
 
             var subfolderText by remember(settings.subFolder) { mutableStateOf(settings.subFolder) }
             var subfolderFocused by remember { mutableStateOf(false) }
-            OutlinedTextField(
+            GlassTextField(
                 value = subfolderText,
                 onValueChange = { subfolderText = it },
-                label = { Text(stringResource(R.string.settings_subfolder)) },
-                singleLine = true,
+                hint = stringResource(R.string.settings_subfolder),
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { state ->
@@ -103,150 +89,163 @@ fun SettingsScreen() {
                     }
             )
 
-            SwitchRow(
-                title = stringResource(R.string.settings_platform_folders),
-                subtitle = stringResource(R.string.settings_platform_folders_desc),
-                checked = settings.platformFolders,
-                onChange = viewModel::setPlatformFolders
-            )
+            Spacer(Modifier.size(12.dp))
 
-            SwitchRow(
-                title = stringResource(R.string.settings_fast_download),
-                subtitle = stringResource(R.string.settings_fast_download_desc),
-                checked = settings.fastDownload,
-                onChange = viewModel::setFastDownload
-            )
+            GlassCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    SwitchRow(
+                        title = stringResource(R.string.settings_platform_folders),
+                        subtitle = stringResource(R.string.settings_platform_folders_desc),
+                        checked = settings.platformFolders,
+                        onChange = viewModel::setPlatformFolders
+                    )
+                    SwitchRow(
+                        title = stringResource(R.string.settings_fast_download),
+                        subtitle = stringResource(R.string.settings_fast_download_desc),
+                        checked = settings.fastDownload,
+                        onChange = viewModel::setFastDownload
+                    )
+                }
+            }
 
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionHeader(stringResource(R.string.settings_section_appearance))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = settings.themeMode == ThemeMode.SYSTEM,
-                    onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
-                    label = { Text(stringResource(R.string.theme_system)) }
-                )
-                FilterChip(
-                    selected = settings.themeMode == ThemeMode.LIGHT,
-                    onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) },
-                    label = { Text(stringResource(R.string.theme_light)) }
-                )
-                FilterChip(
-                    selected = settings.themeMode == ThemeMode.DARK,
-                    onClick = { viewModel.setThemeMode(ThemeMode.DARK) },
-                    label = { Text(stringResource(R.string.theme_dark)) }
-                )
-            }
-
-            SwitchRow(
-                title = stringResource(R.string.settings_dynamic),
-                subtitle = stringResource(R.string.settings_dynamic_desc),
-                checked = settings.dynamicColor,
-                onChange = viewModel::setDynamicColor
-            )
-
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            SectionHeader(stringResource(R.string.settings_section_engine))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(
-                            R.string.settings_engine_version,
-                            engineVersion ?: "…"
-                        ),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        stringResource(R.string.settings_engine_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                ThemeMode.entries.forEach { mode ->
+                    GlassChip(
+                        selected = settings.themeMode == mode,
+                        onClick = { viewModel.setThemeMode(mode) },
+                        label = {
+                            Text(
+                                stringResource(
+                                    when (mode) {
+                                        ThemeMode.SYSTEM -> R.string.theme_system
+                                        ThemeMode.LIGHT -> R.string.theme_light
+                                        ThemeMode.DARK -> R.string.theme_dark
+                                    }
+                                ),
+                                color = if (settings.themeMode == mode) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        }
                     )
                 }
-                Spacer(Modifier.size(8.dp))
-                Button(onClick = viewModel::updateEngine, enabled = !updating) {
+            }
+
+            GlassCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    SwitchRow(
+                        title = stringResource(R.string.settings_dynamic),
+                        subtitle = stringResource(R.string.settings_dynamic_desc),
+                        checked = settings.dynamicColor,
+                        onChange = viewModel::setDynamicColor
+                    )
+                }
+            }
+
+            SectionHeader(stringResource(R.string.settings_section_engine))
+
+            GlassCard(Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(
+                                R.string.settings_engine_version,
+                                engineVersion ?: "…"
+                            ),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            stringResource(R.string.settings_engine_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.size(12.dp))
                     if (updating) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        GlassSpinner()
                     } else {
-                        Text(stringResource(R.string.settings_update))
+                        GlassButton(
+                            onClick = viewModel::updateEngine,
+                            modifier = Modifier
+                                .fillMaxWidth(0.35f)
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_update),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 }
             }
 
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionHeader(stringResource(R.string.settings_section_about))
 
-            val context = LocalContext.current
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.developer_avatar),
-                    contentDescription = stringResource(R.string.avatar),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                )
-                Spacer(Modifier.size(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.developer_name),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        stringResource(R.string.developer_role),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            val repoUrl = "https://github.com/raebaexxx/YtGrab"
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repoUrl)))
+            GlassCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    val context = LocalContext.current
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.developer_avatar),
+                            contentDescription = stringResource(R.string.avatar),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                        )
+                        Spacer(Modifier.size(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.developer_name),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                stringResource(R.string.developer_role),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Outlined.OpenInNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.size(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.settings_repo),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        stringResource(R.string.settings_repo_url),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    }
+
+                    val repoUrl = "https://github.com/raebaexxx/YtGrab"
+                    Spacer(Modifier.size(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.size(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.settings_repo),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                stringResource(R.string.settings_repo_url),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
 
+            val context = LocalContext.current
             val versionName = remember {
                 runCatching {
                     context.packageManager.getPackageInfo(context.packageName, 0).versionName
@@ -256,11 +255,23 @@ fun SettingsScreen() {
                 stringResource(R.string.app_version, versionName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 12.dp)
             )
 
-            Spacer(Modifier.size(24.dp))
+            Spacer(Modifier.size(GlassBarBottomPadding))
         }
+
+        GlassTopBar(
+            title = stringResource(R.string.nav_settings),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .glassTopBarSlot()
+        )
+
+        GlassSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -270,7 +281,7 @@ private fun SectionHeader(text: String) {
         text,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        modifier = Modifier.padding(top = 16.dp, start = 4.dp, bottom = 8.dp)
     )
 }
 
@@ -297,6 +308,6 @@ private fun SwitchRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        com.raebae.ytdl.ui.glass.GlassToggle(checked = checked, onCheckedChange = onChange)
     }
 }

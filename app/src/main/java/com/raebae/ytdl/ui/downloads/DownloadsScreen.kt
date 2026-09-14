@@ -3,6 +3,7 @@ package com.raebae.ytdl.ui.downloads
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,16 +17,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,12 +33,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.DownloadRepository
 import com.raebae.ytdl.data.DownloadRepository.Status
+import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
-import com.raebae.ytdl.ui.glass.scaffoldPaddingWithoutBottom
+import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassCard
+import com.raebae.ytdl.ui.glass.GlassChip
+import com.raebae.ytdl.ui.glass.GlassIconButton
+import com.raebae.ytdl.ui.glass.GlassProgressBar
+import com.raebae.ytdl.ui.glass.GlassTopBar
 import com.raebae.ytdl.util.FileOpener
 import com.raebae.ytdl.util.FormatUtils
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen() {
     val tasks by DownloadRepository.tasks.collectAsStateWithLifecycle()
@@ -53,25 +52,10 @@ fun DownloadsScreen() {
     val active = tasks.filter { it.status == Status.QUEUED || it.status == Status.RUNNING }
     val finished = tasks.filterNot { it.status == Status.QUEUED || it.status == Status.RUNNING }.reversed()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_downloads)) },
-                actions = {
-                    if (finished.isNotEmpty()) {
-                        TextButton(onClick = { DownloadRepository.clearFinished() }) {
-                            Text(stringResource(R.string.clear_finished))
-                        }
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    Box(Modifier.fillMaxSize()) {
         if (tasks.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -80,53 +64,72 @@ fun DownloadsScreen() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            return@Scaffold
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp, end = 16.dp,
+                    top = GlassBarTopPadding, bottom = GlassBarBottomPadding
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (active.isNotEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.downloads_active),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    items(active, key = { it.id }) { task ->
+                        ActiveTaskCard(task) { DownloadRepository.cancel(task.id) }
+                    }
+                }
+                if (finished.isNotEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.downloads_finished),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    items(finished, key = { it.id }) { task ->
+                        FinishedTaskCard(
+                            task,
+                            onOpen = { FileOpener.open(context, task.filePath) },
+                            onRetry = { DownloadRepository.retry(task.id) }
+                        )
+                    }
+                }
+            }
         }
 
-        LazyColumn(
+        GlassTopBar(
+            title = stringResource(R.string.nav_downloads),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(scaffoldPaddingWithoutBottom(padding, androidx.compose.ui.platform.LocalLayoutDirection.current)),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (active.isNotEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.downloads_active),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                items(active, key = { it.id }) { task ->
-                    ActiveTaskCard(task) { DownloadRepository.cancel(task.id) }
-                }
-            }
-            if (finished.isNotEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.downloads_finished),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                items(finished, key = { it.id }) { task ->
-                    FinishedTaskCard(
-                        task,
-                        onOpen = { FileOpener.open(context, task.filePath) },
-                        onRetry = { DownloadRepository.retry(task.id) }
+                .align(Alignment.TopCenter)
+                .glassTopBarSlot(),
+            actions = {
+                if (finished.isNotEmpty()) {
+                    GlassChip(
+                        selected = false,
+                        onClick = { DownloadRepository.clearFinished() },
+                        label = {
+                            Text(
+                                stringResource(R.string.clear_finished),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     )
                 }
             }
-        }
+        )
     }
 }
 
 @Composable
 private fun ActiveTaskCard(task: DownloadRepository.DownloadTask, onCancel: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -142,21 +145,22 @@ private fun ActiveTaskCard(task: DownloadRepository.DownloadTask, onCancel: () -
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cancel))
-                }
+                GlassIconButton(
+                    onClick = onCancel,
+                    icon = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.cancel),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(36.dp)
+                )
             }
             Spacer(Modifier.size(8.dp))
             when (task.status) {
                 Status.RUNNING -> {
-                    if (task.progress > 0) {
-                        LinearProgressIndicator(
-                            progress = { task.progress / 100f },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
+                    GlassProgressBar(
+                        progress = { task.progress.takeIf { it > 0 }?.div(100f) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.size(6.dp))
                     val parts = mutableListOf<String>()
                     if (task.progress > 0) {
                         parts += "${task.progress.toInt()}%"
@@ -177,7 +181,8 @@ private fun ActiveTaskCard(task: DownloadRepository.DownloadTask, onCancel: () -
                     )
                 }
                 else -> {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    GlassProgressBar(progress = { null }, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.size(6.dp))
                     Text(
                         stringResource(R.string.status_queued),
                         style = MaterialTheme.typography.bodySmall,
@@ -195,7 +200,7 @@ private fun FinishedTaskCard(
     onOpen: () -> Unit,
     onRetry: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 when (task.status) {
@@ -239,14 +244,34 @@ private fun FinishedTaskCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 when (task.status) {
-                    Status.COMPLETED -> TextButton(onClick = onOpen) {
-                        Text(stringResource(R.string.open))
-                    }
-                    Status.FAILED, Status.CANCELED -> TextButton(onClick = onRetry) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null)
-                        Spacer(Modifier.size(4.dp))
-                        Text(stringResource(R.string.retry))
-                    }
+                    Status.COMPLETED -> GlassChip(
+                        selected = false,
+                        onClick = onOpen,
+                        label = {
+                            Text(
+                                stringResource(R.string.open),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
+                    Status.FAILED, Status.CANCELED -> GlassChip(
+                        selected = false,
+                        onClick = onRetry,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Refresh,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                stringResource(R.string.retry),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
                     else -> Unit
                 }
             }
