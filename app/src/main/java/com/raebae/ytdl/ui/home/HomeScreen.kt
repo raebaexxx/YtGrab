@@ -57,10 +57,12 @@ import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.VideoFormatOption
 import com.raebae.ytdl.ui.home.HomeViewModel.UiState
-import com.raebae.ytdl.util.FormatUtils
-import com.raebae.ytdl.util.rememberNotificationPermission
+import com.raebae.ytdl.ui.LocalAppBackdrop
+import com.raebae.ytdl.ui.glass.GlassButton
 import com.raebae.ytdl.ui.glass.scaffoldPaddingWithoutBottom
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.util.FormatUtils
+import com.raebae.ytdl.util.rememberNotificationPermission
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -197,20 +199,48 @@ fun HomeScreen(
                         )
                     }
                     item {
-                        Button(
-                            onClick = {
-                                ensureNotificationPermission()
-                                viewModel.download()
-                                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            enabled = s.selected != null
-                        ) {
-                            Icon(Icons.Filled.Download, contentDescription = null)
-                            Spacer(Modifier.size(8.dp))
-                            Text(stringResource(R.string.btn_download))
+                        val appBackdrop = LocalAppBackdrop.current
+                        if (appBackdrop != null && s.selected != null) {
+                            GlassButton(
+                                onClick = {
+                                    ensureNotificationPermission()
+                                    viewModel.download()
+                                    scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+                                },
+                                backdrop = appBackdrop,
+                                modifier = Modifier.fillMaxWidth(),
+                                tint = MaterialTheme.colorScheme.primary,
+                                surfaceColor = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = 0.35f
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Filled.Download,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(Modifier.size(8.dp))
+                                Text(
+                                    stringResource(R.string.btn_download),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    ensureNotificationPermission()
+                                    viewModel.download()
+                                    scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                enabled = s.selected != null
+                            ) {
+                                Icon(Icons.Filled.Download, contentDescription = null)
+                                Spacer(Modifier.size(8.dp))
+                                Text(stringResource(R.string.btn_download))
+                            }
                         }
                     }
                 }

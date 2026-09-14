@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -50,8 +51,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
-import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
+import com.raebae.ytdl.ui.LocalAppBackdrop
+import com.raebae.ytdl.ui.glass.GlassButton
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
 import kotlinx.coroutines.launch
@@ -227,18 +230,48 @@ private fun PlaylistContent(
             }
         }
 
-        Button(
-            onClick = {
-                viewModel.download()
-                onDownloaded(state.selectedIds.size)
-            },
-            enabled = state.selectedIds.isNotEmpty(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding + 16.dp)
-                .height(52.dp)
-        ) {
-            Text(stringResource(R.string.playlist_download_n, state.selectedIds.size))
+        val appBackdrop = LocalAppBackdrop.current
+        if (appBackdrop != null && state.selectedIds.isNotEmpty()) {
+            GlassButton(
+                onClick = {
+                    viewModel.download()
+                    onDownloaded(state.selectedIds.size)
+                },
+                backdrop = appBackdrop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp, end = 16.dp,
+                        top = 8.dp, bottom = GlassBarBottomPadding + 16.dp
+                    ),
+                tint = MaterialTheme.colorScheme.primary,
+                surfaceColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            ) {
+                Icon(
+                    Icons.Filled.Download,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    stringResource(R.string.playlist_download_n, state.selectedIds.size),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        } else {
+            Button(
+                onClick = {
+                    viewModel.download()
+                    onDownloaded(state.selectedIds.size)
+                },
+                enabled = state.selectedIds.isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding + 16.dp)
+                    .height(52.dp)
+            ) {
+                Text(stringResource(R.string.playlist_download_n, state.selectedIds.size))
+            }
         }
     }
 
