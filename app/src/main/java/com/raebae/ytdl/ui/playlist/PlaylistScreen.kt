@@ -2,9 +2,11 @@ package com.raebae.ytdl.ui.playlist
 
 import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,23 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,9 +42,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
-import com.raebae.ytdl.ui.LocalAppBackdrop
-import com.raebae.ytdl.ui.glass.GlassButton
+import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassButton
+import com.raebae.ytdl.ui.glass.GlassCard
+import com.raebae.ytdl.ui.glass.GlassChip
+import com.raebae.ytdl.ui.glass.GlassDialog
+import com.raebae.ytdl.ui.glass.GlassIconButton
+import com.raebae.ytdl.ui.glass.GlassSelectableCard
+import com.raebae.ytdl.ui.glass.GlassSnackbarHost
+import com.raebae.ytdl.ui.glass.GlassSpinner
+import com.raebae.ytdl.ui.glass.GlassTopBar
 import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 
 private val heightOptions = listOf(2160, 1440, 1080, 720, 480, 360)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PlaylistScreen(
     onBack: () -> Unit
@@ -73,59 +73,68 @@ fun PlaylistScreen(
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_queue)
     val ensureNotificationPermission = rememberNotificationPermission()
-    val onDownloaded: (Int) -> Unit = { count ->
+    val onDownloaded: (Int) -> Unit = { _ ->
         ensureNotificationPermission()
         scope.launch { snackbarHostState.showSnackbar(addedMessage) }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.playlist_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
-        val topPadding = padding.calculateTopPadding()
+    Box(Modifier.fillMaxSize()) {
         when (val s = state) {
-            is UiState.Loading -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            is UiState.Loading -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                GlassSpinner()
             }
-            is UiState.Error -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            is UiState.Error -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Text(s.message, style = MaterialTheme.typography.bodyLarge)
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(s.message, style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(8.dp))
+                    GlassChip(
+                        selected = false,
+                        onClick = onBack,
+                        label = {
+                            Text(
+                                stringResource(R.string.back),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
+                }
             }
             is UiState.Ready -> PlaylistContent(
                 state = s,
                 viewModel = viewModel,
                 onDownloaded = onDownloaded,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = topPadding)
+                modifier = Modifier.fillMaxSize()
             )
         }
+
+        GlassTopBar(
+            title = stringResource(R.string.playlist_title),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .glassTopBarSlot(),
+            navigationIcon = {
+                GlassIconButton(
+                    onClick = onBack,
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back)
+                )
+            }
+        )
+
+        GlassSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlaylistContent(
     state: UiState.Ready,
@@ -143,11 +152,11 @@ private fun PlaylistContent(
         "av01" to "AV1"
     )
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Card(
+    Column(modifier = modifier) {
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(top = GlassBarTopPadding + 8.dp, start = 16.dp, end = 16.dp)
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (state.playlist.thumbnail != null) {
@@ -183,10 +192,10 @@ private fun PlaylistContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
+            GlassChip(
                 selected = allSelected,
                 onClick = { if (allSelected) viewModel.deselectAll() else viewModel.selectAll() },
                 label = {
@@ -194,11 +203,13 @@ private fun PlaylistContent(
                         stringResource(
                             if (allSelected) R.string.playlist_deselect_all
                             else R.string.playlist_select_all
-                        )
+                        ),
+                        color = if (allSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface
                     )
                 }
             )
-            FilterChip(
+            GlassChip(
                 selected = false,
                 onClick = { showQualityDialog = true },
                 label = {
@@ -207,7 +218,8 @@ private fun PlaylistContent(
                     }
                     Text(
                         stringResource(R.string.playlist_quality) + ": " +
-                            "${state.preset.maxHeight}p" + (codec?.let { " · $it" } ?: "")
+                            "${state.preset.maxHeight}p" + (codec?.let { " · $it" } ?: ""),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             )
@@ -217,9 +229,10 @@ private fun PlaylistContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                top = 8.dp, bottom = 8.dp
-            )
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(state.playlist.entries, key = { it.id.ifEmpty { it.url } }) { entry ->
                 EntryRow(
@@ -230,48 +243,30 @@ private fun PlaylistContent(
             }
         }
 
-        val appBackdrop = LocalAppBackdrop.current
-        if (appBackdrop != null && state.selectedIds.isNotEmpty()) {
-            GlassButton(
-                onClick = {
-                    viewModel.download()
-                    onDownloaded(state.selectedIds.size)
-                },
-                backdrop = appBackdrop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 16.dp, end = 16.dp,
-                        top = 8.dp, bottom = GlassBarBottomPadding + 16.dp
-                    ),
-                tint = MaterialTheme.colorScheme.primary,
-                surfaceColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-            ) {
-                Icon(
-                    Icons.Filled.Download,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary
+        val selectedCount = state.selectedIds.size
+        GlassButton(
+            onClick = {
+                viewModel.download()
+                onDownloaded(selectedCount)
+            },
+            enabled = selectedCount > 0,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = 16.dp, end = 16.dp,
+                    top = 8.dp, bottom = GlassBarBottomPadding + 8.dp
                 )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    stringResource(R.string.playlist_download_n, state.selectedIds.size),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        } else {
-            Button(
-                onClick = {
-                    viewModel.download()
-                    onDownloaded(state.selectedIds.size)
-                },
-                enabled = state.selectedIds.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding + 16.dp)
-                    .height(52.dp)
-            ) {
-                Text(stringResource(R.string.playlist_download_n, state.selectedIds.size))
-            }
+        ) {
+            Icon(
+                Icons.Filled.Download,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                stringResource(R.string.playlist_download_n, selectedCount),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 
@@ -300,48 +295,57 @@ private fun QualityDialog(
         "vp09" to "VP9",
         "av01" to "AV1"
     )
-    AlertDialog(
+    val okLabel = stringResource(android.R.string.ok)
+    GlassDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.playlist_quality)) },
-        text = {
-            Column {
-                Text(
-                    stringResource(R.string.quality_resolution),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    heightOptions.forEach { h ->
-                        FilterChip(
-                            selected = preset.maxHeight == h,
-                            onClick = { onSetHeight(h) },
-                            label = { Text("${h}p") }
+        title = stringResource(R.string.playlist_quality),
+        dismissText = okLabel,
+        onDismissClick = onDismiss
+    ) {
+        Text(
+            stringResource(R.string.quality_resolution),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            heightOptions.forEach { h ->
+                GlassChip(
+                    selected = preset.maxHeight == h,
+                    onClick = { onSetHeight(h) },
+                    label = {
+                        Text(
+                            "${h}p",
+                            color = if (preset.maxHeight == h) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface
                         )
                     }
-                }
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    stringResource(R.string.quality_codec),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    codecOptions.forEach { (prefix, label) ->
-                        FilterChip(
-                            selected = preset.vcodecPrefix == prefix,
-                            onClick = { onSetCodec(prefix) },
-                            label = { Text(label) }
-                        )
-                    }
-                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.ok)) }
         }
-    )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            stringResource(R.string.quality_codec),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            codecOptions.forEach { (prefix, label) ->
+                GlassChip(
+                    selected = preset.vcodecPrefix == prefix,
+                    onClick = { onSetCodec(prefix) },
+                    label = {
+                        Text(
+                            label,
+                            color = if (preset.vcodecPrefix == prefix) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -350,26 +354,38 @@ private fun EntryRow(
     checked: Boolean,
     onToggle: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
+    GlassSelectableCard(
+        selected = checked,
+        onClick = onToggle
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
-        Column(Modifier.weight(1f)) {
-            Text(
-                entry.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            val d = FormatUtils.formatDuration(entry.durationSec)
-            if (d != "—") {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    d,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    entry.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (checked) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val d = FormatUtils.formatDuration(entry.durationSec)
+                if (d != "—") {
+                    Text(
+                        d,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (checked) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }

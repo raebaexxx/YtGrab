@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,32 +14,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,16 +42,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.VideoFormatOption
-import com.raebae.ytdl.ui.home.HomeViewModel.UiState
-import com.raebae.ytdl.ui.LocalAppBackdrop
-import com.raebae.ytdl.ui.glass.GlassButton
-import com.raebae.ytdl.ui.glass.scaffoldPaddingWithoutBottom
+import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassButton
+import com.raebae.ytdl.ui.glass.GlassCard
+import com.raebae.ytdl.ui.glass.GlassChip
+import com.raebae.ytdl.ui.glass.GlassIconButton
+import com.raebae.ytdl.ui.glass.GlassSnackbarHost
+import com.raebae.ytdl.ui.glass.GlassSpinner
+import com.raebae.ytdl.ui.glass.GlassTextField
+import com.raebae.ytdl.ui.glass.GlassTopBar
+import com.raebae.ytdl.ui.glass.GlassSelectableCard
+import com.raebae.ytdl.ui.home.HomeViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onOpenPlaylist: (String) -> Unit
@@ -74,8 +67,7 @@ fun HomeScreen(
     val viewModel: HomeViewModel = viewModel { HomeViewModel(app) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val url by viewModel.url.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_queue)
     val ensureNotificationPermission = rememberNotificationPermission()
@@ -84,51 +76,54 @@ fun HomeScreen(
         viewModel.openPlaylist.collect { onOpenPlaylist(it) }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(scaffoldPaddingWithoutBottom(padding, layoutDirection)),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 16.dp, end = 16.dp, top = 16.dp, bottom = GlassBarBottomPadding
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp,
+                top = GlassBarTopPadding, bottom = GlassBarBottomPadding
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
+                    GlassTextField(
                         value = url,
                         onValueChange = viewModel::onUrlChanged,
+                        hint = stringResource(R.string.url_hint),
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text(stringResource(R.string.url_hint)) },
-                        singleLine = true,
-                        trailingIcon = {
+                        trailing = {
                             if (url.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.onUrlChanged("") }) {
-                                    Icon(Icons.Filled.Close, contentDescription = null)
-                                }
+                                GlassIconButton(
+                                    onClick = { viewModel.onUrlChanged("") },
+                                    icon = Icons.Filled.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
                         }
                     )
+                    Spacer(Modifier.size(8.dp))
                     val clipboard = LocalClipboardManager.current
-                    IconButton(onClick = {
-                        clipboard.getText()?.toString()?.let { viewModel.onUrlChanged(it.trim()) }
-                    }) {
-                        Icon(Icons.Filled.ContentPaste, contentDescription = stringResource(R.string.paste))
-                    }
+                    GlassIconButton(
+                        onClick = {
+                            clipboard.getText()?.toString()?.let { viewModel.onUrlChanged(it.trim()) }
+                        },
+                        icon = Icons.Filled.ContentPaste,
+                        contentDescription = stringResource(R.string.paste)
+                    )
                 }
             }
             item {
-                Button(
+                GlassButton(
                     onClick = { viewModel.fetch() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state !is UiState.Loading
+                    enabled = state !is UiState.Loading,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(stringResource(R.string.fetch))
+                    Text(
+                        stringResource(R.string.fetch),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
 
@@ -139,47 +134,64 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Spacer(Modifier.height(24.dp))
-                        CircularProgressIndicator()
+                        GlassSpinner()
                         Spacer(Modifier.height(16.dp))
-                        Text(stringResource(R.string.loading), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(R.string.loading),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                         Spacer(Modifier.height(24.dp))
                     }
                 }
                 is UiState.Error -> item {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    GlassCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
                             Text(
                                 s.message,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.error
                             )
-                            TextButton(onClick = { viewModel.fetch() }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = null)
-                                Spacer(Modifier.size(4.dp))
-                                Text(stringResource(R.string.retry))
-                            }
+                            Spacer(Modifier.height(12.dp))
+                            GlassChip(
+                                selected = false,
+                                onClick = { viewModel.fetch() },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.Refresh,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.retry),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            )
                         }
                     }
                 }
                 is UiState.Ready -> {
-                    item {
-                        VideoCard(s.video)
-                    }
+                    item { VideoCard(s.video) }
                     if (viewModel.playlistUrl() != null) {
                         item {
-                            AssistChip(
+                            GlassChip(
+                                selected = false,
                                 onClick = { viewModel.playlistUrl()?.let(onOpenPlaylist) },
-                                label = { Text(stringResource(R.string.playlist_chip)) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.AutoMirrored.Filled.List,
                                         contentDescription = null,
-                                        Modifier.size(18.dp)
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.playlist_chip),
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             )
@@ -199,60 +211,49 @@ fun HomeScreen(
                         )
                     }
                     item {
-                        val appBackdrop = LocalAppBackdrop.current
-                        if (appBackdrop != null && s.selected != null) {
-                            GlassButton(
-                                onClick = {
-                                    ensureNotificationPermission()
-                                    viewModel.download()
-                                    scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                                },
-                                backdrop = appBackdrop,
-                                modifier = Modifier.fillMaxWidth(),
-                                tint = MaterialTheme.colorScheme.primary,
-                                surfaceColor = MaterialTheme.colorScheme.primary.copy(
-                                    alpha = 0.35f
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Filled.Download,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(Modifier.size(8.dp))
-                                Text(
-                                    stringResource(R.string.btn_download),
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                        } else {
-                            Button(
-                                onClick = {
-                                    ensureNotificationPermission()
-                                    viewModel.download()
-                                    scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                enabled = s.selected != null
-                            ) {
-                                Icon(Icons.Filled.Download, contentDescription = null)
-                                Spacer(Modifier.size(8.dp))
-                                Text(stringResource(R.string.btn_download))
-                            }
+                        GlassButton(
+                            onClick = {
+                                ensureNotificationPermission()
+                                viewModel.download()
+                                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+                            },
+                            enabled = s.selected != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Filled.Download,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(Modifier.size(8.dp))
+                            Text(
+                                stringResource(R.string.btn_download),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                 }
                 UiState.Idle -> Unit
             }
         }
+
+        GlassTopBar(
+            title = stringResource(R.string.app_name),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .glassTopBarSlot()
+        )
+
+        GlassSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
 @Composable
 private fun VideoCard(video: com.raebae.ytdl.data.VideoUi) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(Modifier.fillMaxWidth()) {
         Column {
             Box(
                 Modifier
@@ -263,7 +264,7 @@ private fun VideoCard(video: com.raebae.ytdl.data.VideoUi) {
                     AsyncImage(
                         model = video.thumbnail,
                         contentDescription = null,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -297,14 +298,9 @@ private fun FormatRow(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    Surface(
+    GlassSelectableCard(
+        selected = selected,
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = if (selected) androidx.compose.foundation.BorderStroke(
-            2.dp, MaterialTheme.colorScheme.primary
-        ) else null,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -315,7 +311,9 @@ private fun FormatRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "${option.height}p${if (option.fps > 30) option.fps.toString() else ""}",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.size(8.dp))
                     Text(
@@ -342,7 +340,14 @@ private fun FormatRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            RadioButton(selected = selected, onClick = onClick)
+            if (selected) {
+                Icon(
+                    Icons.Filled.Download,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
