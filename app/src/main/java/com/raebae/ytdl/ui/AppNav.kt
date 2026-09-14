@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
@@ -35,13 +36,14 @@ import com.raebae.ytdl.R
 import com.raebae.ytdl.ui.downloads.DownloadsScreen
 import com.raebae.ytdl.ui.glass.GlassBottomBar
 import com.raebae.ytdl.ui.glass.GlassTab
+import com.raebae.ytdl.ui.glass.GlassTheme
 import com.raebae.ytdl.ui.home.HomeScreen
 import com.raebae.ytdl.ui.playlist.PlaylistScreen
 import com.raebae.ytdl.ui.settings.SettingsScreen
 import com.raebae.ytdl.util.PlaylistBridge
 import com.raebae.ytdl.util.UrlBridge
 
-/** Backdrop of the whole app content, used by glass components. */
+/** Backdrop of the whole app content, used by every glass component. */
 val LocalAppBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 object Routes {
@@ -54,8 +56,7 @@ object Routes {
 private data class TabSpec(
     val route: String,
     val labelRes: Int,
-    val icon: ImageVector,
-    val iconSelected: ImageVector
+    val icon: ImageVector
 )
 
 @Composable
@@ -81,8 +82,9 @@ fun AppRoot() {
     }
 
     // The whole content layer feeds the backdrop; the background color is
-    // drawn first so glass also refracts the area behind lists (the docs call
-    // this out: "the background outside of the content should be drawn too").
+    // drawn first so glass also refracts the area behind lists (the backdrop
+    // docs call this out: "the background outside of the content should be
+    // drawn too").
     val backgroundColor = MaterialTheme.colorScheme.background
     val backdrop = rememberLayerBackdrop {
         drawRect(backgroundColor)
@@ -90,9 +92,9 @@ fun AppRoot() {
     }
 
     val tabs = listOf(
-        TabSpec(Routes.HOME, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
-        TabSpec(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Outlined.Download, Icons.Filled.Download),
-        TabSpec(Routes.SETTINGS, R.string.nav_settings, Icons.Outlined.Settings, Icons.Filled.Settings)
+        TabSpec(Routes.HOME, R.string.nav_home, Icons.Outlined.Home),
+        TabSpec(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Outlined.Download),
+        TabSpec(Routes.SETTINGS, R.string.nav_settings, Icons.Outlined.Settings)
     )
     val glassTabs = tabs.map { spec ->
         GlassTab(label = stringResource(spec.labelRes), icon = spec.icon)
@@ -101,49 +103,61 @@ fun AppRoot() {
         tabs.indexOfFirst { it.route == currentRoute }.let { if (it < 0) 0 else it }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    // Provider order matters (two startup crashes in the first attempt at
+    // this): GlassTheme provides the palette and LocalAppBackdrop provides
+    // the backdrop — both must wrap the bars, not just the NavHost.
+    GlassTheme {
         CompositionLocalProvider(LocalAppBackdrop provides backdrop) {
-            NavHost(
-                navController = navController,
-                startDestination = Routes.HOME,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .layerBackdrop(backdrop)
-            ) {
-                composable(Routes.HOME) {
-                    HomeScreen(
-                        onOpenPlaylist = { url ->
-                            PlaylistBridge.pendingUrl = url
-                            navController.navigate(Routes.PLAYLIST) { launchSingleTop = true }
+            Box(Modifier.fillMaxSize()) {
+                NavHost(
+                    navController = navController,
+                    startDestination = Routes.HOME,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .layerBackdrop(backdrop)
+                ) {
+                    composable(Routes.HOME) {
+                        HomeScreen(
+                            onOpenPlaylist = { url ->
+                                PlaylistBridge.pendingUrl = url
+                                navController.navigate(Routes.PLAYLIST) { launchSingleTop = true }
+                            }
+                        )
+                    }
+                    composable(Routes.DOWNLOADS) { DownloadsScreen() }
+                    composable(Routes.SETTINGS) { SettingsScreen() }
+                    composable(Routes.PLAYLIST) {
+                        PlaylistScreen(onBack = { navController.popBackStack() })
+                    }
+                }
+
+                GlassBottomBar(
+                    selectedTabIndex = { selectedTabIndex },
+                    onTabSelected = { index ->
+                        val route = tabs[index].route
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                    )
-                }
-                composable(Routes.DOWNLOADS) { DownloadsScreen() }
-                composable(Routes.SETTINGS) { SettingsScreen() }
-                composable(Routes.PLAYLIST) {
-                    PlaylistScreen(onBack = { navController.popBackStack() })
-                }
+                    },
+                    tabs = glassTabs,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 12.dp)
+                )
             }
         }
-
-        GlassBottomBar(
-            selectedTabIndex = { selectedTabIndex },
-            onTabSelected = { index ->
-                val route = tabs[index].route
-                navController.navigate(route) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
-            backdrop = backdrop,
-            tabs = glassTabs,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 12.dp)
-        )
     }
 }
+
+/**
+ * Standard modifier of the floating top bar: centered below the status bar.
+ * Screens use it because the status inset belongs to the app shell, not to
+ * each screen.
+ */
+fun Modifier.glassTopBarSlot(): Modifier =
+    statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)
