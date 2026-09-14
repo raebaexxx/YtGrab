@@ -134,7 +134,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             formatLabel = formatLabel(option),
             mergeExt = FormatBuilder.mergeExtFor(option.vcodec, option.ext),
             outputDir = dir,
-            thumbnail = ready.video.thumbnail,
             sizeHint = option.sizeBytes,
             embedMetadata = settingsValue.embedMetadata,
             embedThumbnail = settingsValue.embedThumbnail,

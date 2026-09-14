@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.raebae.ytdl.MainActivity
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.DownloadRepository
 import com.raebae.ytdl.data.DownloadRepository.Status
@@ -77,6 +78,7 @@ class DownloadService : Service() {
             .setSilent(true)
             .setOngoing(true)
             .setContentTitle(getString(R.string.notif_downloading))
+            .setContentIntent(contentIntent())
 
         if (active == null) {
             return builder.build()
@@ -110,6 +112,13 @@ class DownloadService : Service() {
         )
         return builder.build()
     }
+
+    private fun contentIntent(): PendingIntent = PendingIntent.getActivity(
+        this,
+        0,
+        Intent(this, MainActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE
+    )
 
     private fun cancelPendingIntent(id: String): PendingIntent =
         PendingIntent.getService(

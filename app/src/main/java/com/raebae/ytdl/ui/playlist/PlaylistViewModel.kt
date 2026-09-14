@@ -141,7 +141,6 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
                     },
                     mergeExt = FormatBuilder.mergeExtFor(preset.vcodecPrefix, null),
                     outputDir = SettingsRepository.resolveOutputDir(app, settingsValue, entry.url),
-                    thumbnail = ready.playlist.thumbnail,
                     sizeHint = null,
                     embedMetadata = settingsValue.embedMetadata,
                     embedThumbnail = settingsValue.embedThumbnail,

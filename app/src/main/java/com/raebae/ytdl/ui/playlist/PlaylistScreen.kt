@@ -299,7 +299,7 @@ private fun QualityDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("ОК") }
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.ok)) }
         }
     )
 }

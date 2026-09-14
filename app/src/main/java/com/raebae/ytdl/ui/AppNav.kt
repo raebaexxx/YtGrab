@@ -14,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +30,7 @@ import com.raebae.ytdl.ui.home.HomeScreen
 import com.raebae.ytdl.ui.playlist.PlaylistScreen
 import com.raebae.ytdl.ui.settings.SettingsScreen
 import com.raebae.ytdl.util.PlaylistBridge
+import com.raebae.ytdl.util.UrlBridge
 
 object Routes {
     const val HOME = "home"
@@ -55,6 +57,22 @@ fun AppRoot() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    // A share/view intent can arrive while any tab is open; jump to Home so
+    // the auto-fetch is actually visible to the user.
+    LaunchedEffect(Unit) {
+        UrlBridge.pendingUrl.collect { shared ->
+            if (shared != null) {
+                navController.navigate(Routes.HOME) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = false
+                }
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {

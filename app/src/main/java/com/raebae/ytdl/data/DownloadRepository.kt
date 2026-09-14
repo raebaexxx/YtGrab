@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -34,7 +35,6 @@ object DownloadRepository {
         val formatLabel: String,
         val mergeExt: String?,
         val outputDir: File,
-        val thumbnail: String?,
         val sizeHint: Long?,
         val embedMetadata: Boolean = true,
         val embedThumbnail: Boolean = false,
@@ -66,7 +66,19 @@ object DownloadRepository {
     fun enqueue(context: Context, newTasks: List<DownloadTask>) {
         if (newTasks.isEmpty()) return
         attach(context)
-        _tasks.update { it + newTasks }
+        val accepted = _tasks.updateAndGet { list ->
+            // skip exact duplicates (same video+format) that are still pending/running
+            val activeKeys = list
+                .filter { it.status == Status.QUEUED || it.status == Status.RUNNING }
+                .map { it.url to it.formatSpec }
+                .toSet()
+            val fresh = newTasks.filter { (it.url to it.formatSpec) !in activeKeys }
+            if (fresh.isEmpty()) list else list + fresh
+        }
+        if (accepted.none { it.status == Status.QUEUED || it.status == Status.RUNNING }) {
+            // nothing new was queued (all duplicates) — do not resurrect the service
+            return
+        }
         startService(context)
         scope.launch { wake.send(Unit) }
     }
@@ -119,6 +131,7 @@ object DownloadRepository {
             }
             val ext = task.mergeExt ?: "mp4"
             val path = File(task.outputDir, "${task.fileNameBase}.$ext").absolutePath
+            finalizeArtifacts(task, succeeded = true)
             _tasks.update { list ->
                 list.map {
                     if (it.id == task.id) it.copy(
@@ -130,10 +143,12 @@ object DownloadRepository {
                 }
             }
         } catch (e: YoutubeDL.CanceledException) {
+            finalizeArtifacts(task, succeeded = false)
             _tasks.update { list ->
                 list.map { if (it.id == task.id) it.copy(status = Status.CANCELED) else it }
             }
         } catch (e: Exception) {
+            finalizeArtifacts(task, succeeded = false)
             val msg = if ((e.message ?: "").contains("Permission denied")) {
                 appContext?.getString(R.string.err_permission_denied)
                     ?: YtDlpEngine.friendlyError(e, "download failed")
@@ -161,17 +176,42 @@ object DownloadRepository {
      * scoped storage (FUSE) then denies us write access when yt-dlp or ffmpeg
      * tries to replace them. Delete everything matching this task's base name
      * before downloading so ffmpeg never has to overwrite a foreign file.
+     *
+     * The previously downloaded final file is kept as a `.bak` until the new
+     * attempt succeeds, so a failed retry does not destroy the user's copy.
      */
     private fun cleanStaleArtifacts(task: DownloadTask) {
         val finalName = "${task.fileNameBase}.${task.mergeExt ?: "mp4"}"
+        val bakName = "$finalName.bak"
         val files = task.outputDir.listFiles() ?: return
         for (f in files) {
             if (!f.name.startsWith(task.fileNameBase)) continue
-            if (f.name == finalName) continue
+            if (f.name == finalName || f.name == bakName) continue
             runCatching { f.delete() }
         }
         val final = File(task.outputDir, finalName)
-        if (final.exists()) runCatching { final.delete() }
+        if (final.exists()) {
+            val bak = File(task.outputDir, "$finalName.bak")
+            runCatching { bak.delete() }
+            val renamed = runCatching { final.renameTo(bak) }.getOrDefault(false)
+            if (!renamed) runCatching { final.delete() }
+        }
+    }
+
+    /** After a finished attempt: drop the backup on success, restore it otherwise. */
+    private fun finalizeArtifacts(task: DownloadTask, succeeded: Boolean) {
+        val finalName = "${task.fileNameBase}.${task.mergeExt ?: "mp4"}"
+        val bak = File(task.outputDir, "$finalName.bak")
+        if (!bak.exists()) return
+        runCatching {
+            if (succeeded) {
+                bak.delete()
+            } else {
+                val final = File(task.outputDir, finalName)
+                if (final.exists()) final.delete()
+                bak.renameTo(final)
+            }
+        }
     }
 
     private suspend fun pollProgress(id: String, dir: File, fileNameBase: String, sizeHint: Long?) {
