@@ -91,6 +91,8 @@ dependencies {
 
     implementation(libs.coil.compose)
 
+    implementation(libs.kyant.backdrop)
+
     implementation(libs.youtubedl.library)
     implementation(project(":ffmpeg"))
     implementation(libs.youtubedl.aria2c)
