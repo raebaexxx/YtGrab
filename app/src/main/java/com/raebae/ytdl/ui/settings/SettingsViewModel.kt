@@ -45,9 +45,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 YtDlpEngine.versionName(getApplication())
             }.getOrNull()
         }
-    }
-
-    fun updateEngine() {
+    }    fun updateEngine() {
         if (_updating.value) return
         val app = getApplication<Application>()
         _updating.value = true
@@ -65,7 +63,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 )
                 refreshVersion()
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // Error-type failures (NoClassDefFoundError etc.) must not crash
+                // the app — show a readable message instead
                 _message.emit(YtDlpEngine.friendlyError(e, app.getString(R.string.err_generic)))
             } finally {
                 _updating.value = false

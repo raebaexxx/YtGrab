@@ -147,7 +147,9 @@ object DownloadRepository {
             _tasks.update { list ->
                 list.map { if (it.id == task.id) it.copy(status = Status.CANCELED) else it }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Error-type failures (LinkageError etc.) must mark the task failed
+            // instead of killing the worker coroutine and stalling the queue
             finalizeArtifacts(task, succeeded = false)
             val msg = if ((e.message ?: "").contains("Permission denied")) {
                 appContext?.getString(R.string.err_permission_denied)

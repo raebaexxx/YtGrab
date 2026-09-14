@@ -92,7 +92,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                     is MediaResult.Playlist ->
                         _openPlaylist.emit(result.playlist.url)
                 }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
                 _state.value = UiState.Error(mapError(e, ctx))
             }
         }

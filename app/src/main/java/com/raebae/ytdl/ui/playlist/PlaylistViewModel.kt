@@ -70,7 +70,9 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
                     is MediaResult.Video -> _state.value =
                         UiState.Error(ctx.getString(R.string.err_not_playlist))
                 }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
                 _state.value = UiState.Error(mapError(e, ctx))
             }
         }
