@@ -72,6 +72,12 @@ android {
     androidResources {
         localeFilters += listOf("en", "ru")
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -100,4 +106,8 @@ dependencies {
     implementation(libs.youtubedl.aria2c)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.core)
+    debugImplementation(libs.compose.ui.test.junit4)
 }
