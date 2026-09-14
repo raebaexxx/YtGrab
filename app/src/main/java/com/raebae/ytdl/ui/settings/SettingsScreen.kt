@@ -40,7 +40,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.ThemeMode
-import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import com.raebae.ytdl.ui.glass.GlassBarTopPadding
 import com.raebae.ytdl.ui.glass.GlassButton
@@ -49,7 +48,7 @@ import com.raebae.ytdl.ui.glass.GlassChip
 import com.raebae.ytdl.ui.glass.GlassSnackbarHost
 import com.raebae.ytdl.ui.glass.GlassSpinner
 import com.raebae.ytdl.ui.glass.GlassTextField
-import com.raebae.ytdl.ui.glass.GlassTopBar
+import com.raebae.ytdl.ui.glass.GlassToggle
 
 @Composable
 fun SettingsScreen() {
@@ -260,13 +259,6 @@ fun SettingsScreen() {
 
             Spacer(Modifier.size(GlassBarBottomPadding))
         }
-
-        GlassTopBar(
-            title = stringResource(R.string.nav_settings),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .glassTopBarSlot()
-        )
 
         GlassSnackbarHost(
             hostState = snackbarHostState,

@@ -42,7 +42,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
-import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import com.raebae.ytdl.ui.glass.GlassBarTopPadding
 import com.raebae.ytdl.ui.glass.GlassButton
@@ -53,7 +52,6 @@ import com.raebae.ytdl.ui.glass.GlassIconButton
 import com.raebae.ytdl.ui.glass.GlassSelectableCard
 import com.raebae.ytdl.ui.glass.GlassSnackbarHost
 import com.raebae.ytdl.ui.glass.GlassSpinner
-import com.raebae.ytdl.ui.glass.GlassTopBar
 import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
@@ -105,28 +103,16 @@ fun PlaylistScreen(
                     )
                 }
             }
-            is UiState.Ready -> PlaylistContent(
-                state = s,
-                viewModel = viewModel,
-                onDownloaded = onDownloaded,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+             is UiState.Ready -> PlaylistContent(
+                 state = s,
+                 viewModel = viewModel,
+                 onDownloaded = onDownloaded,
+                 modifier = Modifier.fillMaxSize()
+             )
+         }
 
-        GlassTopBar(
-            title = stringResource(R.string.playlist_title),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .glassTopBarSlot(),
-            navigationIcon = {
-                GlassIconButton(
-                    onClick = onBack,
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back)
-                )
-            }
-        )
-
+        // The top bar lives in the AppRoot overlay; the snackbar consumes
+        // only the content backdrop, which is safe inside the NavHost.
         GlassSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)

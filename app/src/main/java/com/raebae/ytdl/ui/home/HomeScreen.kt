@@ -42,7 +42,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.VideoFormatOption
-import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import com.raebae.ytdl.ui.glass.GlassBarTopPadding
 import com.raebae.ytdl.ui.glass.GlassButton
@@ -52,7 +51,6 @@ import com.raebae.ytdl.ui.glass.GlassIconButton
 import com.raebae.ytdl.ui.glass.GlassSnackbarHost
 import com.raebae.ytdl.ui.glass.GlassSpinner
 import com.raebae.ytdl.ui.glass.GlassTextField
-import com.raebae.ytdl.ui.glass.GlassTopBar
 import com.raebae.ytdl.ui.glass.GlassSelectableCard
 import com.raebae.ytdl.ui.home.HomeViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
@@ -237,13 +235,8 @@ fun HomeScreen(
             }
         }
 
-        GlassTopBar(
-            title = stringResource(R.string.app_name),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .glassTopBarSlot()
-        )
-
+        // Snackbars consume only the content backdrop (safe inside the
+        // NavHost: that backdrop never contains the screen itself).
         GlassSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)

@@ -33,14 +33,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.DownloadRepository
 import com.raebae.ytdl.data.DownloadRepository.Status
-import com.raebae.ytdl.ui.glassTopBarSlot
 import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import com.raebae.ytdl.ui.glass.GlassBarTopPadding
 import com.raebae.ytdl.ui.glass.GlassCard
 import com.raebae.ytdl.ui.glass.GlassChip
 import com.raebae.ytdl.ui.glass.GlassIconButton
 import com.raebae.ytdl.ui.glass.GlassProgressBar
-import com.raebae.ytdl.ui.glass.GlassTopBar
 import com.raebae.ytdl.util.FileOpener
 import com.raebae.ytdl.util.FormatUtils
 
@@ -104,26 +102,7 @@ fun DownloadsScreen() {
             }
         }
 
-        GlassTopBar(
-            title = stringResource(R.string.nav_downloads),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .glassTopBarSlot(),
-            actions = {
-                if (finished.isNotEmpty()) {
-                    GlassChip(
-                        selected = false,
-                        onClick = { DownloadRepository.clearFinished() },
-                        label = {
-                            Text(
-                                stringResource(R.string.clear_finished),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    )
-                }
-            }
-        )
+        // Top bar (with the clear-finished chip) lives in the AppRoot overlay.
     }
 }
 
