@@ -39,6 +39,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.DownloadRepository
 import com.raebae.ytdl.data.DownloadRepository.Status
+import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
+import com.raebae.ytdl.ui.glass.scaffoldPaddingWithoutBottom
 import com.raebae.ytdl.util.FileOpener
 import com.raebae.ytdl.util.FormatUtils
 
@@ -84,8 +86,10 @@ fun DownloadsScreen() {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                .padding(scaffoldPaddingWithoutBottom(padding, androidx.compose.ui.platform.LocalLayoutDirection.current)),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (active.isNotEmpty()) {

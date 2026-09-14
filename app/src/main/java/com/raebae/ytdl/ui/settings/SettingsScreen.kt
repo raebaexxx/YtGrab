@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -49,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.ThemeMode
+import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,12 +71,18 @@ fun SettingsScreen() {
         topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_settings)) }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(
+                    top = padding.calculateTopPadding(),
+                    start = padding.calculateStartPadding(layoutDirection),
+                    end = padding.calculateEndPadding(layoutDirection)
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
+                .padding(bottom = GlassBarBottomPadding)
         ) {
             SectionHeader(stringResource(R.string.settings_section_save))
 

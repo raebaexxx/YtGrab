@@ -51,6 +51,7 @@ import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
 import com.raebae.ytdl.ui.playlist.PlaylistViewModel.UiState
+import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
 import kotlinx.coroutines.launch
@@ -87,6 +88,8 @@ fun PlaylistScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+        val topPadding = padding.calculateTopPadding()
         when (val s = state) {
             is UiState.Loading -> Column(
                 modifier = Modifier
@@ -111,7 +114,9 @@ fun PlaylistScreen(
                 state = s,
                 viewModel = viewModel,
                 onDownloaded = onDownloaded,
-                modifier = Modifier.padding(padding)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topPadding)
             )
         }
     }
@@ -209,7 +214,9 @@ private fun PlaylistContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                top = 8.dp, bottom = 8.dp
+            )
         ) {
             items(state.playlist.entries, key = { it.id.ifEmpty { it.url } }) { entry ->
                 EntryRow(
@@ -228,7 +235,7 @@ private fun PlaylistContent(
             enabled = state.selectedIds.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = GlassBarBottomPadding + 16.dp)
                 .height(52.dp)
         ) {
             Text(stringResource(R.string.playlist_download_n, state.selectedIds.size))

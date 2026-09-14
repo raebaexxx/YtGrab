@@ -92,6 +92,8 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.kyant.backdrop)
+    // backdrop declares shapes as runtime-only; we need Capsule at compile time
+    implementation(libs.kyant.shapes)
 
     implementation(libs.youtubedl.library)
     implementation(project(":ffmpeg"))

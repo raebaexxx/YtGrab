@@ -59,6 +59,8 @@ import com.raebae.ytdl.data.VideoFormatOption
 import com.raebae.ytdl.ui.home.HomeViewModel.UiState
 import com.raebae.ytdl.util.FormatUtils
 import com.raebae.ytdl.util.rememberNotificationPermission
+import com.raebae.ytdl.ui.glass.scaffoldPaddingWithoutBottom
+import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,11 +86,14 @@ fun HomeScreen(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                .padding(scaffoldPaddingWithoutBottom(padding, layoutDirection)),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 16.dp, end = 16.dp, top = 16.dp, bottom = GlassBarBottomPadding
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
