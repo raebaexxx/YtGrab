@@ -40,8 +40,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.ThemeMode
-import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
-import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassBottomBarInset
+import com.raebae.ytdl.ui.glass.GlassBottomContentInset
+import com.raebae.ytdl.ui.glass.GlassTopContentInset
 import com.raebae.ytdl.ui.glass.GlassButton
 import com.raebae.ytdl.ui.glass.GlassCard
 import com.raebae.ytdl.ui.glass.GlassChip
@@ -68,6 +69,10 @@ fun SettingsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .padding(
+                    top = GlassTopContentInset(),
+                    bottom = GlassBottomContentInset()
+                )
                 .padding(horizontal = 16.dp)
         ) {
             SectionHeader(stringResource(R.string.settings_section_save))
@@ -127,12 +132,7 @@ fun SettingsScreen() {
                                         ThemeMode.LIGHT -> R.string.theme_light
                                         ThemeMode.DARK -> R.string.theme_dark
                                     }
-                                ),
-                                color = if (settings.themeMode == mode) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                }
+                                )
                             )
                         }
                     )
@@ -180,7 +180,7 @@ fun SettingsScreen() {
                         GlassButton(
                             onClick = viewModel::updateEngine,
                             modifier = Modifier
-                                .fillMaxWidth(0.35f)
+                                .fillMaxWidth(0.42f)
                         ) {
                             Text(
                                 stringResource(R.string.settings_update),
@@ -254,15 +254,16 @@ fun SettingsScreen() {
                 stringResource(R.string.app_version, versionName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 12.dp)
+                modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 12.dp)
             )
 
-            Spacer(Modifier.size(GlassBarBottomPadding))
         }
 
         GlassSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = GlassBottomBarInset() + 8.dp)
         )
     }
 }

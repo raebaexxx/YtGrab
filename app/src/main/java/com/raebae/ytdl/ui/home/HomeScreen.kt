@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
@@ -42,8 +44,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.VideoFormatOption
-import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
-import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassBottomContentInset
+import com.raebae.ytdl.ui.glass.GlassBottomBarInset
+import com.raebae.ytdl.ui.glass.GlassTopContentInset
 import com.raebae.ytdl.ui.glass.GlassButton
 import com.raebae.ytdl.ui.glass.GlassCard
 import com.raebae.ytdl.ui.glass.GlassChip
@@ -79,7 +82,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp, end = 16.dp,
-                top = GlassBarTopPadding, bottom = GlassBarBottomPadding
+                top = GlassTopContentInset(), bottom = GlassBottomContentInset()
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -89,6 +92,7 @@ fun HomeScreen(
                         value = url,
                         onValueChange = viewModel::onUrlChanged,
                         hint = stringResource(R.string.url_hint),
+                        onSubmit = { if (state !is UiState.Loading) viewModel.fetch() },
                         modifier = Modifier.weight(1f),
                         trailing = {
                             if (url.isNotEmpty()) {
@@ -101,7 +105,7 @@ fun HomeScreen(
                             }
                         }
                     )
-                    Spacer(Modifier.size(8.dp))
+                    Spacer(Modifier.width(12.dp))
                     val clipboard = LocalClipboardManager.current
                     GlassIconButton(
                         onClick = {
@@ -143,13 +147,13 @@ fun HomeScreen(
                 }
                 is UiState.Error -> item {
                     GlassCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp)) {
+                        Column(Modifier.padding(20.dp)) {
                             Text(
                                 s.message,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(16.dp))
                             GlassChip(
                                 selected = false,
                                 onClick = { viewModel.fetch() },
@@ -161,12 +165,7 @@ fun HomeScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.retry),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                                label = { Text(stringResource(R.string.retry)) }
                             )
                         }
                     }
@@ -186,12 +185,7 @@ fun HomeScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.playlist_chip),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                                label = { Text(stringResource(R.string.playlist_chip)) }
                             )
                         }
                     }
@@ -236,10 +230,13 @@ fun HomeScreen(
         }
 
         // Snackbars consume only the content backdrop (safe inside the
-        // NavHost: that backdrop never contains the screen itself).
+        // NavHost: that backdrop never contains the screen itself). Lifted
+        // above the floating bottom bar so it never hides the tabs.
         GlassSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = GlassBottomBarInset() + 8.dp)
         )
     }
 }
@@ -335,10 +332,10 @@ private fun FormatRow(
             }
             if (selected) {
                 Icon(
-                    Icons.Filled.Download,
+                    Icons.Filled.CheckCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }

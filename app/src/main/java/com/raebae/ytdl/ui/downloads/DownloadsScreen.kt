@@ -33,8 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.DownloadRepository
 import com.raebae.ytdl.data.DownloadRepository.Status
-import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
-import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassBottomContentInset
+import com.raebae.ytdl.ui.glass.GlassTopContentInset
 import com.raebae.ytdl.ui.glass.GlassCard
 import com.raebae.ytdl.ui.glass.GlassChip
 import com.raebae.ytdl.ui.glass.GlassIconButton
@@ -67,7 +67,7 @@ fun DownloadsScreen() {
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp, end = 16.dp,
-                    top = GlassBarTopPadding, bottom = GlassBarBottomPadding
+                    top = GlassTopContentInset(), bottom = GlassBottomContentInset()
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -226,12 +226,7 @@ private fun FinishedTaskCard(
                     Status.COMPLETED -> GlassChip(
                         selected = false,
                         onClick = onOpen,
-                        label = {
-                            Text(
-                                stringResource(R.string.open),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        label = { Text(stringResource(R.string.open)) }
                     )
                     Status.FAILED, Status.CANCELED -> GlassChip(
                         selected = false,
@@ -244,12 +239,7 @@ private fun FinishedTaskCard(
                                 modifier = Modifier.size(18.dp)
                             )
                         },
-                        label = {
-                            Text(
-                                stringResource(R.string.retry),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        label = { Text(stringResource(R.string.retry)) }
                     )
                     else -> Unit
                 }

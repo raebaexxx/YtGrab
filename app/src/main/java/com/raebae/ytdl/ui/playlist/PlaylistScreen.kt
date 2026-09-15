@@ -42,8 +42,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.raebae.ytdl.R
 import com.raebae.ytdl.data.PlaylistEntryUi
-import com.raebae.ytdl.ui.glass.GlassBarBottomPadding
-import com.raebae.ytdl.ui.glass.GlassBarTopPadding
+import com.raebae.ytdl.ui.glass.GlassBottomBarInset
+import com.raebae.ytdl.ui.glass.GlassTopContentInset
 import com.raebae.ytdl.ui.glass.GlassButton
 import com.raebae.ytdl.ui.glass.GlassCard
 import com.raebae.ytdl.ui.glass.GlassChip
@@ -75,6 +75,7 @@ fun PlaylistScreen(
         ensureNotificationPermission()
         scope.launch { snackbarHostState.showSnackbar(addedMessage) }
     }
+    var showQualityDialog by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
@@ -94,12 +95,7 @@ fun PlaylistScreen(
                     GlassChip(
                         selected = false,
                         onClick = onBack,
-                        label = {
-                            Text(
-                                stringResource(R.string.back),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        label = { Text(stringResource(R.string.back)) }
                     )
                 }
             }
@@ -107,6 +103,7 @@ fun PlaylistScreen(
                  state = s,
                  viewModel = viewModel,
                  onDownloaded = onDownloaded,
+                 onShowQualityDialog = { showQualityDialog = true },
                  modifier = Modifier.fillMaxSize()
              )
          }
@@ -115,8 +112,22 @@ fun PlaylistScreen(
         // only the content backdrop, which is safe inside the NavHost.
         GlassSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = GlassBottomBarInset() + 8.dp)
         )
+
+        // Inline glass dialog overlay: last child of the screen Box so it
+        // covers everything while staying inside the content backdrop.
+        val ready = state as? UiState.Ready
+        if (showQualityDialog && ready != null) {
+            QualityDialog(
+                preset = ready.preset,
+                onSetHeight = viewModel::setMaxHeight,
+                onSetCodec = viewModel::setCodec,
+                onDismiss = { showQualityDialog = false }
+            )
+        }
     }
 }
 
@@ -126,9 +137,9 @@ private fun PlaylistContent(
     state: UiState.Ready,
     viewModel: PlaylistViewModel,
     onDownloaded: (Int) -> Unit,
+    onShowQualityDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showQualityDialog by remember { mutableStateOf(false) }
     val allSelected = state.selectedIds.size == state.playlist.entries.size
     val anyCodecLabel = stringResource(R.string.codec_any)
     val codecOptions = listOf(
@@ -142,7 +153,7 @@ private fun PlaylistContent(
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = GlassBarTopPadding + 8.dp, start = 16.dp, end = 16.dp)
+                .padding(top = GlassTopContentInset(), start = 16.dp, end = 16.dp)
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (state.playlist.thumbnail != null) {
@@ -189,23 +200,20 @@ private fun PlaylistContent(
                         stringResource(
                             if (allSelected) R.string.playlist_deselect_all
                             else R.string.playlist_select_all
-                        ),
-                        color = if (allSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface
+                        )
                     )
                 }
             )
             GlassChip(
                 selected = false,
-                onClick = { showQualityDialog = true },
+                onClick = onShowQualityDialog,
                 label = {
                     val codec = state.preset.vcodecPrefix?.let { p ->
                         codecOptions.firstOrNull { c -> c.first == p }?.second
                     }
                     Text(
                         stringResource(R.string.playlist_quality) + ": " +
-                            "${state.preset.maxHeight}p" + (codec?.let { " · $it" } ?: ""),
-                        color = MaterialTheme.colorScheme.onSurface
+                            "${state.preset.maxHeight}p" + (codec?.let { " · $it" } ?: "")
                     )
                 }
             )
@@ -240,7 +248,7 @@ private fun PlaylistContent(
                 .fillMaxWidth()
                 .padding(
                     start = 16.dp, end = 16.dp,
-                    top = 8.dp, bottom = GlassBarBottomPadding + 8.dp
+                    top = 8.dp, bottom = GlassBottomBarInset() + 8.dp
                 )
         ) {
             Icon(
@@ -256,14 +264,6 @@ private fun PlaylistContent(
         }
     }
 
-    if (showQualityDialog) {
-        QualityDialog(
-            preset = state.preset,
-            onSetHeight = viewModel::setMaxHeight,
-            onSetCodec = viewModel::setCodec,
-            onDismiss = { showQualityDialog = false }
-        )
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -299,13 +299,7 @@ private fun QualityDialog(
                 GlassChip(
                     selected = preset.maxHeight == h,
                     onClick = { onSetHeight(h) },
-                    label = {
-                        Text(
-                            "${h}p",
-                            color = if (preset.maxHeight == h) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    label = { Text("${h}p") }
                 )
             }
         }
@@ -321,13 +315,7 @@ private fun QualityDialog(
                 GlassChip(
                     selected = preset.vcodecPrefix == prefix,
                     onClick = { onSetCodec(prefix) },
-                    label = {
-                        Text(
-                            label,
-                            color = if (preset.vcodecPrefix == prefix) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    label = { Text(label) }
                 )
             }
         }

@@ -257,9 +257,7 @@ private fun GlassClearFinishedAction(label: String) {
         GlassChip(
             selected = false,
             onClick = { DownloadRepository.clearFinished() },
-            label = {
-                Text(label, color = MaterialTheme.colorScheme.primary)
-            }
+            label = { Text(label) }
         )
     }
 }
