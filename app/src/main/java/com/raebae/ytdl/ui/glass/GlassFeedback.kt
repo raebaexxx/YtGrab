@@ -1,12 +1,15 @@
 package com.raebae.ytdl.ui.glass
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -70,7 +73,8 @@ fun GlassSnackbarHost(
 /**
  * Determinate or indeterminate progress in a glass capsule track.
  * [progress] returns null for the indeterminate sweep, 0..1 otherwise.
- * The fill is an accent capsule sliding inside the clipped track.
+ * The fill is an accent capsule centered inside the clipped track; the
+ * indeterminate stub travels the full track width.
  */
 @Composable
 fun GlassProgressBar(
@@ -80,17 +84,22 @@ fun GlassProgressBar(
     val colors = glassColors()
     val backdrop = com.raebae.ytdl.ui.LocalAppBackdrop.current
     val accent = MaterialTheme.colorScheme.primary
-    val determinate = progress() != null
+    val fraction = progress()
 
     val sweep = rememberInfiniteTransition(label = "glass-progress")
     val sweepPosition by sweep.animateFloat(
-        initialValue = -0.5f,
-        targetValue = 1.5f,
+        initialValue = -0.25f,
+        targetValue = 1.25f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1300, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "sweep"
+    )
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction?.coerceIn(0f, 1f) ?: 0f,
+        animationSpec = tween(350),
+        label = "glass-progress-fill"
     )
 
     Box(
@@ -104,25 +113,34 @@ fun GlassProgressBar(
                 colors = colors
             )
             .clip(Capsule())
-            .padding(4.dp)
     ) {
-        // accent fill: full width by fraction when determinate, a traveling
-        // stub when indeterminate
-        val fraction = progress()
-        val fillFraction = fraction?.coerceIn(0f, 1f) ?: 0.35f
-        Box(
-            Modifier
-                .fillMaxWidth(fillFraction)
-                .height(12.dp)
-                .graphicsLayer {
-                    if (!determinate) {
-                        // the stub slides across the track
-                        translationX = sweepPosition * size.width
-                    }
+        Box(Modifier.matchParentSize().padding(3.dp)) {
+            if (fraction != null) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(animatedFraction)
+                        .fillMaxHeight()
+                        .clip(Capsule())
+                        .drawBehind { drawRect(accent.copy(alpha = 0.75f)) }
+                )
+            } else {
+                BoxWithConstraints(Modifier.matchParentSize()) {
+                    val trackWidth = constraints.maxWidth.toFloat()
+                    Box(
+                        Modifier
+                            .fillMaxWidth(0.35f)
+                            .fillMaxHeight()
+                            .graphicsLayer {
+                                val stubWidth = trackWidth * 0.35f
+                                translationX =
+                                    (trackWidth + stubWidth) * sweepPosition - stubWidth
+                            }
+                            .clip(Capsule())
+                            .drawBehind { drawRect(accent.copy(alpha = 0.75f)) }
+                    )
                 }
-                .clip(Capsule())
-                .drawBehind { drawRect(accent.copy(alpha = 0.55f)) }
-        )
+            }
+        }
     }
 }
 
@@ -157,16 +175,21 @@ fun GlassSpinner(
                     colors = colors
                 )
         )
-        // accent dot orbiting the disc rim
+        // Rotating container carries the accent dot at its top edge, so the
+        // dot orbits the rim around the disc center.
         Box(
             Modifier
-                .size(10.dp)
-                .graphicsLayer {
-                    rotationZ = angle
-                    translationX = 13.dp.toPx()
-                }
-                .clip(CircleShape)
-                .drawBehind { drawRect(accent.copy(alpha = 0.6f)) }
-        )
+                .size(40.dp)
+                .graphicsLayer { rotationZ = angle }
+        ) {
+            Box(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp)
+                    .size(9.dp)
+                    .clip(CircleShape)
+                    .drawBehind { drawRect(accent.copy(alpha = 0.85f)) }
+            )
+        }
     }
 }

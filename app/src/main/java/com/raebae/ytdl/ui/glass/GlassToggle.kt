@@ -2,6 +2,8 @@ package com.raebae.ytdl.ui.glass
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +25,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
@@ -62,7 +66,15 @@ fun GlassToggle(
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
-    val thumbTravel = with(density) { (52.dp - 24.dp).toPx() }
+    // Geometry: the thumb must stay inside the track at both extremes —
+    // travel is track width minus thumb width minus both paddings.
+    val trackWidth = 52.dp
+    val trackHeight = 30.dp
+    val thumbSize = 26.dp
+    val thumbPadding = 2.dp
+    val thumbTravel = with(density) {
+        (trackWidth - thumbSize - thumbPadding * 2).toPx()
+    }
 
     var fraction by remember { mutableFloatStateOf(if (checked) 1f else 0f) }
     var moved by remember { mutableStateOf(false) }
@@ -108,7 +120,10 @@ fun GlassToggle(
 
     val trackBackdrop = rememberLayerBackdrop()
 
-    Box(modifier.size(52.dp, 28.dp), contentAlignment = Alignment.CenterStart) {
+    Box(
+        modifier.size(trackWidth, trackHeight),
+        contentAlignment = Alignment.CenterStart
+    ) {
         // Track: capsule whose color lerps gray → accent, recorded into
         // trackBackdrop so the pressed thumb can refract the accent fill
         Box(
@@ -116,7 +131,7 @@ fun GlassToggle(
                 .layerBackdrop(trackBackdrop)
                 .clip(Capsule())
                 .drawBehind { drawRect(lerp(colors.controlTrack, accent, drag.value)) }
-                .size(52.dp, 28.dp)
+                .size(trackWidth, trackHeight)
         )
 
         // Thumb: CONTROL-recipe glass over the app backdrop combined with a
@@ -124,14 +139,21 @@ fun GlassToggle(
         Box(
             Modifier
                 .graphicsLayer {
-                    val padding = 2.dp.toPx()
+                    val padding = thumbPadding.toPx()
                     translationX = if (isLtr) {
                         lerp(padding, padding + thumbTravel, drag.value)
                     } else {
-                        lerp(-padding, -(padding + thumbTravel), drag.value)
+                        -lerp(padding, padding + thumbTravel, drag.value)
                     }
                 }
-                .semantics { role = Role.Switch }
+                .semantics {
+                    role = Role.Switch
+                    this[SemanticsProperties.ToggleableState] = ToggleableState(checked)
+                    onClick {
+                        onCheckedChange(!checked)
+                        true
+                    }
+                }
                 .pointerInput(drag) { drag.pointerHandler().invoke(this) }
                 .drawBackdrop(
                     backdrop = rememberCombinedBackdrop(
@@ -143,7 +165,7 @@ fun GlassToggle(
                             scale(scaleX, scaleY) { drawTrack() }
                         }
                     ),
-                    shape = { Capsule() },
+                    shape = { CircleShape },
                     effects = {
                         val p = drag.pressProgress
                         blur(8.dp.toPx() * (1f - p))
@@ -153,10 +175,10 @@ fun GlassToggle(
                         Highlight.Ambient.copy(
                             width = Highlight.Ambient.width / 1.5f,
                             blurRadius = Highlight.Ambient.blurRadius / 1.5f,
-                            alpha = drag.pressProgress
+                            alpha = 0.6f + drag.pressProgress * 0.4f
                         )
                     },
-                    shadow = { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) },
+                    shadow = { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.15f)) },
                     innerShadow = {
                         val p = drag.pressProgress
                         InnerShadow(radius = 4.dp * p, alpha = p)
@@ -169,10 +191,10 @@ fun GlassToggle(
                         scaleY *= 1f - v * 0.25f
                     },
                     onDrawSurface = {
-                        drawRect(Color.White.copy(alpha = 1f - drag.pressProgress))
+                        drawRect(Color.White.copy(alpha = 1f - drag.pressProgress * 0.12f))
                     }
                 )
-                .size(40.dp, 24.dp)
+                .size(thumbSize)
         )
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
@@ -96,8 +99,14 @@ fun GlassBottomBar(
                 .collectLatest { index -> if (index != currentIndex) currentIndex = index }
         }
 
-        // panel sway: the bar drifts a little against the droplet drag
+        // panel sway: the bar drifts a little against the droplet drag.
+        // The damped offset is shared by the panel and the droplet so they
+        // never desynchronize on fast drags.
         val panelSway = remember { Animatable(0f) }
+        val swayFraction =
+            (panelSway.value / constraints.maxWidth.toFloat()).fastCoerceIn(-1f, 1f)
+        val swayPx = with(density) { 4.dp.toPx() } *
+            swayFraction.sign * EaseOut.transform(abs(swayFraction))
 
         val dragState = rememberGlassDragState(
             initialValue = selectedTabIndex().toFloat(),
@@ -111,28 +120,30 @@ fun GlassBottomBar(
             },
             onDragStopped = {
                 val target = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
-                animateTo(target.toFloat())
                 scope.launch { panelSway.animateTo(0f, spring(1f, 300f, 0.5f)) }
                 if (target != currentIndex) {
                     currentIndex = target
-                    onTabSelected(target)
+                } else {
+                    // released on the same tab: spring the droplet back
+                    animateTo(target.toFloat())
                 }
             }
         )
-        // animate the droplet whenever the selection changes externally
-        LaunchedEffect(dragState, currentIndex) {
+        // single source of truth for selection: move the droplet and commit
+        // navigation — both for drag releases and for tab clicks
+        LaunchedEffect(dragState) {
             snapshotFlow { currentIndex }
-                .collectLatest { index -> dragState.animateTo(index.toFloat()) }
+                .drop(1)
+                .collectLatest { index ->
+                    if (dragState.value != index.toFloat()) dragState.animateTo(index.toFloat())
+                    onTabSelected(index)
+                }
         }
 
         // Base panel: chrome glass, icons/labels drawn above the glass
         Row(
             Modifier
-                .graphicsLayer {
-                    val fraction = (panelSway.value / constraints.maxWidth).fastCoerceIn(-1f, 1f)
-                    translationX =
-                        with(density) { 4.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction)) }
-                }
+                .graphicsLayer { translationX = swayPx }
                 .drawGlass(
                     backdrop = backdrop,
                     recipe = Recipe.CHROME,
@@ -148,7 +159,17 @@ fun GlassBottomBar(
                 .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = {
-                tabs.forEachIndexed { index, tab -> TabContent(tab, selected = index == currentIndex) }
+                tabs.forEachIndexed { index, tab ->
+                    TabContent(
+                        tab = tab,
+                        selected = index == currentIndex,
+                        // the selected tab's glyph is repainted above the
+                        // droplet (which would otherwise dim it through its
+                        // surface); the slot stays reserved for layout
+                        showContent = index != currentIndex,
+                        onSelect = { if (index != currentIndex) currentIndex = index }
+                    )
+                }
             }
         )
 
@@ -160,11 +181,7 @@ fun GlassBottomBar(
                 .clearAndSetSemantics {}
                 .alpha(0f)
                 .layerBackdrop(tabsBackdrop)
-                .graphicsLayer {
-                    val fraction = (panelSway.value / constraints.maxWidth).fastCoerceIn(-1f, 1f)
-                    translationX =
-                        with(density) { 4.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction)) }
-                }
+                .graphicsLayer { translationX = swayPx }
                 .drawGlass(
                     backdrop = backdrop,
                     recipe = Recipe.CHROME,
@@ -176,7 +193,7 @@ fun GlassBottomBar(
                 .padding(horizontal = 4.dp)
                 .graphicsLayer(colorFilter = ColorFilter.tint(accent)),
             verticalAlignment = Alignment.CenterVertically,
-            content = { tabs.forEach { tab -> TabContent(tab, selected = true) } }
+            content = { tabs.forEach { tab -> TabContent(tab, selected = true, interactive = false) } }
         )
 
         // The droplet: a draggable lens over the active tab
@@ -185,9 +202,9 @@ fun GlassBottomBar(
                 .padding(horizontal = 4.dp)
                 .graphicsLayer {
                     translationX = if (isLtr) {
-                        dragState.value * tabWidth + panelSway.value
+                        dragState.value * tabWidth + swayPx
                     } else {
-                        size.width - (dragState.value + 1f) * tabWidth + panelSway.value
+                        size.width - (dragState.value + 1f) * tabWidth + swayPx
                     }
                 }
                 .pointerInput(dragState) { dragState.pointerHandler().invoke(this) }
@@ -228,6 +245,29 @@ fun GlassBottomBar(
                 .height(GlassDimensionsDefault.barDropletHeight)
                 .fillMaxWidth(1f / tabsCount)
         )
+
+        // Selected-tab glyph repainted ABOVE the droplet: the droplet's
+        // surface would otherwise darken it below legibility. Mirrors the
+        // base panel's geometry exactly; purely decorative, so it neither
+        // repeats semantics nor consumes touches.
+        Row(
+            Modifier
+                .clearAndSetSemantics {}
+                .graphicsLayer { translationX = swayPx }
+                .height(GlassDimensionsDefault.barHeight)
+                .fillMaxWidth()
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                TabContent(
+                    tab = tab,
+                    selected = true,
+                    interactive = false,
+                    showContent = index == currentIndex
+                )
+            }
+        }
     }
 }
 
@@ -283,26 +323,45 @@ fun GlassTopBar(
 }
 
 @Composable
-private fun RowScope.TabContent(tab: GlassTab, selected: Boolean) {
+private fun RowScope.TabContent(
+    tab: GlassTab,
+    selected: Boolean,
+    onSelect: () -> Unit = {},
+    interactive: Boolean = true,
+    showContent: Boolean = true
+) {
     val contentColor = if (selected) {
         MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val clickableModifier = if (interactive) {
+        Modifier.clickable(
+            interactionSource = null,
+            indication = null,
+            role = Role.Tab,
+            onClick = onSelect
+        )
+    } else {
+        Modifier
+    }
     Box(
         Modifier
             .weight(1f)
-            .fillMaxHeight(),
+            .fillMaxHeight()
+            .then(clickableModifier),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(imageVector = tab.icon, contentDescription = tab.label, tint = contentColor)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = tab.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor
-            )
+        if (showContent) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(imageVector = tab.icon, contentDescription = tab.label, tint = contentColor)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = tab.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor
+                )
+            }
         }
     }
 }

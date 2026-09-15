@@ -64,7 +64,7 @@
     <string name="settings_dynamic_desc">Colors from wallpaper (Material You)</string>
     <string name="settings_section_engine">Engine</string>
     <string name="settings_engine_version">yt-dlp version: %1$s</string>
-    <string name="settings_update">Update yt-dlp</string>
+    <string name="settings_update">Update</string>
     <string name="updating">Updating…</string>
     <string name="up_to_date">Already up to date</string>
     <string name="updated">Updated to %1$s</string>

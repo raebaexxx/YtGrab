@@ -64,7 +64,7 @@
     <string name="settings_dynamic_desc">Цвета из обоев (Material You)</string>
     <string name="settings_section_engine">Движок</string>
     <string name="settings_engine_version">Версия yt-dlp: %1$s</string>
-    <string name="settings_update">Обновить yt-dlp</string>
+    <string name="settings_update">Обновить</string>
     <string name="updating">Обновление…</string>
     <string name="up_to_date">Уже актуальная версия</string>
     <string name="updated">Обновлено до %1$s</string>
