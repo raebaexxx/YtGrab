@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -25,13 +26,19 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.kyant.backdrop.Backdrop
@@ -41,6 +48,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -100,6 +108,25 @@ internal fun Modifier.drawGlass(
                 if (p > 0f) drawRect(Color.White.copy(alpha = p))
             }
         }
+        // Sheen + rim: without something to refract (flat app background),
+        // these two are what make a surface read as glass, not a fill.
+        if (recipe != Recipe.CONTROL) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0f to colors.glassSheen,
+                    0.45f to Color.Transparent,
+                    endY = size.height
+                )
+            )
+            val rimPath = Path().apply {
+                addOutline(shape.createOutline(size, layoutDirection, this@surfaceOverlay))
+            }
+            drawPath(
+                path = rimPath,
+                color = colors.glassEdge,
+                style = Stroke(width = 1.5f.dp.toPx())
+            )
+        }
     }
 
     return if (backdrop == null) {
@@ -115,7 +142,13 @@ internal fun Modifier.drawGlass(
                         blur(8.dp.toPx())
                         lens(24.dp.toPx(), 24.dp.toPx())
                     }
-                    Recipe.CONTENT -> blur(10.dp.toPx())
+                    Recipe.CONTENT -> {
+                        blur(6.dp.toPx())
+                        // A gentle lens so content glass refracts and catches
+                        // a rim of light even over a flat background — this is
+                        // what stops cards from reading as flat tinted rects.
+                        lens(4.dp.toPx(), 12.dp.toPx())
+                    }
                     Recipe.ACCENT -> {
                         blur(2.dp.toPx())
                         lens(12.dp.toPx(), 24.dp.toPx())
@@ -127,10 +160,29 @@ internal fun Modifier.drawGlass(
                     }
                 }
             },
-            highlight = { Highlight.Ambient.copy(alpha = 0.5f) },
+            highlight = {
+                when (recipe) {
+                    Recipe.CONTENT -> Highlight.Ambient.copy(alpha = 0.75f)
+                    else -> Highlight.Ambient.copy(alpha = 0.5f)
+                }
+            },
+            shadow = {
+                when (recipe) {
+                    // Elevation is what separates same-tint glass from the
+                    // background (white pill on white page in light theme).
+                    Recipe.CHROME -> Shadow(radius = 20.dp, offset = DpOffset.Zero, color = Color.Black, alpha = 0.18f)
+                    Recipe.CONTENT -> Shadow(radius = 10.dp, offset = DpOffset.Zero, color = Color.Black, alpha = 0.10f)
+                    Recipe.ACCENT -> Shadow(radius = 14.dp, offset = DpOffset.Zero, color = Color.Black, alpha = 0.20f)
+                    Recipe.CONTROL -> null
+                }
+            },
             innerShadow = {
                 val p = pressed()
-                if (p > 0f) InnerShadow(radius = 8.dp * p, alpha = p) else null
+                when {
+                    p > 0f -> InnerShadow(radius = 8.dp * p, alpha = p)
+                    recipe == Recipe.CONTENT -> InnerShadow(radius = 3.dp, alpha = 0.4f)
+                    else -> null
+                }
             },
             layerBlock = layerBlock,
             onDrawSurface = { surfaceOverlay() }
@@ -182,6 +234,7 @@ fun GlassButton(
 
     Row(
         modifier
+            .graphicsLayer { alpha = if (enabled) 1f else 0.45f }
             .glassPress(scope, enabled, press, if (enabled) onClick else null)
             .drawGlass(
                 backdrop = backdrop,
@@ -194,9 +247,9 @@ fun GlassButton(
                 scaleX = scale
                 scaleY = scale
             }
-            .height(GlassDimensionsDefault.buttonHeight)
+            .defaultMinSize(minHeight = GlassDimensionsDefault.buttonHeight)
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
         content = content

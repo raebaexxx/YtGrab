@@ -31,7 +31,11 @@ data class GlassColors(
     /** Readability overlay of accent glass, on top of the tint. */
     val accentSurface: Color,
     /** Track color of control glass (switches, progress). */
-    val controlTrack: Color
+    val controlTrack: Color,
+    /** Top-to-bottom light sheen that gives the surface its glass volume. */
+    val glassSheen: Color,
+    /** 1dp rim stroke along the surface edge. */
+    val glassEdge: Color
 )
 
 /** Geometry tokens that keep all glass elements in one shape family. */
@@ -60,12 +64,14 @@ val GlassDimensionsDefault = GlassDimensions(
  */
 val LocalGlassColors = staticCompositionLocalOf {
     GlassColors(
-        chromeSurface = Color(0xFFFAFAFA).copy(alpha = 0.40f),
-        contentSurface = Color(0xFFFAFAFA).copy(alpha = 0.45f),
-        contentSurfaceSelected = Color(0xFF3560E0).copy(alpha = 0.12f),
+        chromeSurface = Color(0xFFFCFCFE).copy(alpha = 0.72f),
+        contentSurface = Color(0xFFFFFFFF).copy(alpha = 0.62f),
+        contentSurfaceSelected = Color(0xFF3560E0).copy(alpha = 0.16f),
         accentTint = Color(0xFF3560E0),
-        accentSurface = Color(0xFF3560E0).copy(alpha = 0.30f),
-        controlTrack = Color(0xFF787880).copy(alpha = 0.18f)
+        accentSurface = Color(0xFF3560E0).copy(alpha = 0.40f),
+        controlTrack = Color(0xFF787880).copy(alpha = 0.18f),
+        glassSheen = Color.White.copy(alpha = 0.35f),
+        glassEdge = Color.White.copy(alpha = 0.60f)
     )
 }
 
@@ -85,24 +91,35 @@ fun GlassTheme(content: @Composable () -> Unit) {
     val accent = scheme.primary
     val colors = if (dark) {
         GlassColors(
-            chromeSurface = Color(0xFF16171B).copy(alpha = 0.40f),
-            contentSurface = Color(0xFF1C1D22).copy(alpha = 0.45f),
-            contentSurfaceSelected = accent.copy(alpha = 0.16f),
+            chromeSurface = Color(0xFF14151A).copy(alpha = 0.72f),
+            contentSurface = Color(0xFF2E3038).copy(alpha = 0.72f),
+            contentSurfaceSelected = accent.copy(alpha = 0.22f),
             accentTint = accent,
-            accentSurface = accent.copy(alpha = 0.30f),
-            controlTrack = Color(0xFF8A8A93).copy(alpha = 0.28f)
+            accentSurface = accent.copy(alpha = 0.45f),
+            controlTrack = Color(0xFF8A8A93).copy(alpha = 0.28f),
+            glassSheen = Color.White.copy(alpha = 0.10f),
+            glassEdge = Color.White.copy(alpha = 0.16f)
         )
     } else {
         GlassColors(
-            chromeSurface = Color(0xFFFAFAFA).copy(alpha = 0.40f),
-            contentSurface = Color(0xFFFAFAFA).copy(alpha = 0.45f),
-            contentSurfaceSelected = accent.copy(alpha = 0.10f),
+            chromeSurface = Color(0xFFFCFCFE).copy(alpha = 0.72f),
+            contentSurface = Color(0xFFFFFFFF).copy(alpha = 0.62f),
+            contentSurfaceSelected = accent.copy(alpha = 0.16f),
             accentTint = accent,
-            accentSurface = accent.copy(alpha = 0.28f),
-            controlTrack = Color(0xFF787880).copy(alpha = 0.16f)
+            accentSurface = accent.copy(alpha = 0.40f),
+            controlTrack = Color(0xFF787880).copy(alpha = 0.16f),
+            glassSheen = Color.White.copy(alpha = 0.35f),
+            glassEdge = Color.White.copy(alpha = 0.60f)
         )
     }
-    CompositionLocalProvider(LocalGlassColors provides colors, content = content)
+    // Scaffold is gone from the screens; MaterialTheme does not provide a
+    // content color itself — without this, every Text/Icon without an
+    // explicit color would fall back to black (invisible on the dark theme).
+    CompositionLocalProvider(
+        LocalGlassColors provides colors,
+        androidx.compose.material3.LocalContentColor provides scheme.onBackground,
+        content = content
+    )
 }
 
 private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f * blue

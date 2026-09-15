@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
@@ -26,7 +29,8 @@ import com.kyant.shapes.Capsule/**
  * read as a quiet glass layer in contrast to the floating chrome.
  */
 
-/** Glass card — the base container of content sections. */
+/** Glass card — the base container of content sections. Content is clipped
+ * to the card shape so images never poke out of the rounded corners. */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -34,13 +38,16 @@ fun GlassCard(
 ) {
     val colors = glassColors()
     val backdrop = com.raebae.ytdl.ui.LocalAppBackdrop.current
+    val shape = RoundedCornerShape(GlassDimensionsDefault.cardCornerRadius)
     Box(
-        modifier.drawGlass(
-            backdrop = backdrop,
-            recipe = Recipe.CONTENT,
-            shape = RoundedCornerShape(GlassDimensionsDefault.cardCornerRadius),
-            colors = colors
-        )
+        modifier
+            .drawGlass(
+                backdrop = backdrop,
+                recipe = Recipe.CONTENT,
+                shape = shape,
+                colors = colors
+            )
+            .clip(shape)
     ) {
         content()
     }
@@ -61,6 +68,7 @@ fun GlassSelectableCard(
     val colors = glassColors()
     val backdrop = com.raebae.ytdl.ui.LocalAppBackdrop.current
     val (press, scope) = rememberGlassPress()
+    val shape = RoundedCornerShape(GlassDimensionsDefault.cardCornerRadius)
 
     Box(
         modifier
@@ -68,7 +76,7 @@ fun GlassSelectableCard(
             .drawGlass(
                 backdrop = backdrop,
                 recipe = Recipe.CONTENT,
-                shape = RoundedCornerShape(GlassDimensionsDefault.cardCornerRadius),
+                shape = shape,
                 colors = colors,
                 pressed = { press.value },
                 accentOverlay = selected
@@ -77,6 +85,7 @@ fun GlassSelectableCard(
                 scaleX = scale
                 scaleY = scale
             }
+            .clip(shape)
     ) {
         content()
     }
@@ -97,8 +106,10 @@ fun GlassChip(
     val colors = glassColors()
     val backdrop = com.raebae.ytdl.ui.LocalAppBackdrop.current
     val (press, scope) = rememberGlassPress()
+    // A selected chip is a filled droplet of accent glass with onPrimary
+    // text (iOS tinted-selection); an unselected one is quiet content glass.
     val labelColor = if (selected) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onPrimary
     } else {
         MaterialTheme.colorScheme.onSurface
     }
@@ -108,11 +119,10 @@ fun GlassChip(
             .glassPress(scope, true, press, onClick)
             .drawGlass(
                 backdrop = backdrop,
-                recipe = Recipe.CONTENT,
+                recipe = if (selected) Recipe.ACCENT else Recipe.CONTENT,
                 shape = Capsule(),
                 colors = colors,
-                pressed = { press.value },
-                accentOverlay = selected
+                pressed = { press.value }
             ) {
                 val scale = lerp(1f, 0.95f, press.value)
                 scaleX = scale
@@ -139,6 +149,7 @@ fun GlassChip(
 /**
  * Glass text field — a capsule with a [hint] and an optional [trailing]
  * icon inside. The caret carries the focus state; no focus ring on glass.
+ * [onSubmit] wires the keyboard's Done action to the primary screen action.
  */
 @Composable
 fun GlassTextField(
@@ -146,6 +157,7 @@ fun GlassTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     hint: String? = null,
+    onSubmit: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null
 ) {
     val colors = glassColors()
@@ -160,7 +172,7 @@ fun GlassTextField(
                 colors = colors
             )
             .defaultMinSize(minHeight = GlassDimensionsDefault.buttonHeight)
-            .padding(start = 20.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 20.dp, end = if (trailing != null) 8.dp else 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -173,6 +185,20 @@ fun GlassTextField(
                     color = MaterialTheme.colorScheme.onSurface
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = if (onSubmit != null) {
+                    KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                    )
+                } else {
+                    KeyboardOptions.Default
+                },
+                keyboardActions = if (onSubmit != null) {
+                    KeyboardActions(
+                        onDone = { onSubmit() }
+                    )
+                } else {
+                    KeyboardActions.Default
+                },
                 decorationBox = { innerField ->
                     Box(Modifier.fillMaxWidth()) {
                         if (value.isEmpty() && hint != null) {
